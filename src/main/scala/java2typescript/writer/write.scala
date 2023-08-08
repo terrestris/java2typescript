@@ -1,24 +1,26 @@
-package de.terrestris
-package java2typescript.writer
-
-import java2typescript.ast.Statement
+package de.terrestris.java2typescript
+package writer
 
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import io.apigee.trireme.core.{NodeEnvironment, NodeScript, ScriptStatus}
+import de.terrestris.java2typescript.ast.Node
 
 import java.io.{BufferedReader, BufferedWriter, File, InputStreamReader, OutputStreamWriter}
 import java.nio.charset.Charset
 import scala.io.Source
 
-def write(statements: List[Statement]): String = {
+def serialize(statements: List[Node]) = {
   val mapper = JsonMapper.builder()
     .addModule(DefaultScalaModule)
     .enable(SerializationFeature.INDENT_OUTPUT)
     .build()
 
-  val serialized = mapper.writeValueAsString(statements)
+  mapper.writeValueAsString(statements)
+}
+
+def write(statements: List[ast.Node]): String = {
+  val serialized: String = serialize(statements)
 
   val fileName = "src/main/javascript/dist/index.js"
 

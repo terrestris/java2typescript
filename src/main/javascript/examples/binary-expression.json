@@ -1,0 +1,14 @@
+{
+  "kind": 225,
+  "left": {
+    "kind": 9,
+    "text": "3"
+  },
+  "right": {
+    "kind": 9,
+    "text": "7"
+  },
+  "operatorToken": {
+    "kind": 40
+  }
+}

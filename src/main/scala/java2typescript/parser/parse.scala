@@ -3,17 +3,22 @@ package parser
 
 import com.github.javaparser.StaticJavaParser
 import com.github.javaparser.ast.body.MethodDeclaration
-import de.terrestris.java2typescript.ast.Statement
 import scala.jdk.CollectionConverters.*
 
 import java.util.Optional
 
-def parse(code: String): List[Statement] = {
-  val cu = StaticJavaParser.parse(code)
-  val method = cu
+def parseMethodBody(code: String): List[ast.Node] = {
+  val body = StaticJavaParser.parse(code)
     .findFirst(classOf[MethodDeclaration])
+    .orElseThrow()
+    .getBody
+    .orElseThrow()
 
-  val body = method.orElseThrow().getBody().orElseThrow()
+  transformer.transformBlockStatement(body)
+}
 
-  List(transformer.statements.transformStatement(body))
+def parse(code: String): List[ast.Node] = {
+  val cu = StaticJavaParser.parse(code)
+
+  transformer.transformCompilationUnit(cu)
 }
