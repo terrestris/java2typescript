@@ -21,4 +21,11 @@ class ClassSpec extends AnyFlatSpec with should.Matchers {
     val written = write(parsed)
     written should fullyMatch regex """export interface A \{\s*\}\s*"""
   }
+
+  "The transformer" should "transform a class with member variables" in {
+    val input = "class A {\nprivate String a;\nprotected String b;\npublic String c;String d;\n}"
+    val parsed = parse(input)
+    val written = write(parsed)
+    written should fullyMatch regex """export class A \{\s*private a: string;\s*protected b: string;\s*public c: string;\s*d: string;\s*\}\s*"""
+  }
 }

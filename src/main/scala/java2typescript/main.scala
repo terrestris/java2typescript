@@ -1,8 +1,8 @@
-package de.terrestris
-package java2typescript
+package de.terrestris.java2typescript
 
-import java2typescript.writer.write
+import writer.write
+import parser.parse
 
 @main def main() = {
-  println(write(List()))
+  println(write(parse("class A {}")))
 }

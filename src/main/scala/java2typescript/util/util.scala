@@ -1,5 +1,4 @@
-package de.terrestris.java2typescript
-package util
+package de.terrestris.java2typescript.util
 
 def resolveImportPath(packagePath: Array[String], importPath: Array[String]): String = {
   val differing = packagePath

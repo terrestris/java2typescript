@@ -1,5 +1,4 @@
-package de.terrestris.java2typescript
-package transformer
+package de.terrestris.java2typescript.transformer
 
 import com.github.javaparser.ast.{CompilationUnit, ImportDeclaration, NodeList, PackageDeclaration}
 import com.github.javaparser.ast.`type`.{ClassOrInterfaceType, Type}
@@ -7,17 +6,17 @@ import com.github.javaparser.ast.body.{ClassOrInterfaceDeclaration, TypeDeclarat
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.expr.BinaryExpr.Operator
 import com.github.javaparser.ast.stmt.{BlockStmt, ExpressionStmt, LocalClassDeclarationStmt, Statement}
+import de.terrestris.java2typescript.ast
 import de.terrestris.java2typescript.util.resolveImportPath
 
 import java.util.Optional
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
-def transformCompilationUnit(cu: CompilationUnit): List[ast.Node] = {
+def transformCompilationUnit(cu: CompilationUnit): List[ast.Node] =
   cu.getImports.asScala.map(i => transformImport(cu.getPackageDeclaration, i)).toList
   :::
   cu.getTypes.asScala.map(t => transformTypeDeclaration(t, List(ast.ExportKeyword()))).toList
-}
 
 def transformImport(pack: Optional[PackageDeclaration], importDeclaration: ImportDeclaration) = {
   val packagePath = pack.map(p => p.getName.toString.split("\\.")).orElse(Array[String]())
@@ -40,7 +39,7 @@ def transformImport(pack: Optional[PackageDeclaration], importDeclaration: Impor
   )
 }
 
-def transformTypeDeclaration[T <: TypeDeclaration[?]](decl: TypeDeclaration[T], modifiers: List[ast.Modifier] = List()) =
+def transformTypeDeclaration(decl: TypeDeclaration[?], modifiers: List[ast.Modifier] = List()) =
   decl match
     case decl: ClassOrInterfaceDeclaration => transformClassOrInterfaceDeclaration(decl, modifiers)
     case _ => throw new Error("not supported")
@@ -91,12 +90,12 @@ def transformBinaryExpression(expr: BinaryExpr): ast.BinaryExpression =
 def transformUnaryExpression(expr: UnaryExpr): ast.PrefixUnaryExpression =
   ast.PrefixUnaryExpression(transformOperator(expr.getOperator).kind, transformExpression(expr.getExpression))
 
-def transformObjectCreationExpression(expr: ObjectCreationExpr) = {
-  val ident = ast.Identifier(expr.getType.getName.getIdentifier)
-  val types = transformTypeArguments(expr.getTypeArguments)
-  val arguments = transformArguments(expr.getArguments)
-  ast.NewExpression(ident, arguments, types)
-}
+def transformObjectCreationExpression(expr: ObjectCreationExpr) =
+  ast.NewExpression(
+    ast.Identifier(expr.getType.getName.getIdentifier),
+    transformArguments(expr.getArguments),
+    transformTypeArguments(expr.getTypeArguments)
+  )
 
 def transformArguments(expressions: NodeList[Expression]) =
   expressions.asScala.map(transformExpression).toList

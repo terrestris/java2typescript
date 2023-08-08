@@ -1,16 +1,15 @@
-package de.terrestris.java2typescript
-package writer
+package de.terrestris.java2typescript.writer
 
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import de.terrestris.java2typescript.ast.Node
+import de.terrestris.java2typescript.ast
 
 import java.io.{BufferedReader, BufferedWriter, File, InputStreamReader, OutputStreamWriter}
 import java.nio.charset.Charset
 import scala.io.Source
 
-def serialize(statements: List[Node]) = {
+def serialize(statements: List[ast.Node]) = {
   val mapper = JsonMapper.builder()
     .addModule(DefaultScalaModule)
     .enable(SerializationFeature.INDENT_OUTPUT)

@@ -1,5 +1,4 @@
-package de.terrestris.java2typescript
-package ast
+package de.terrestris.java2typescript.ast
 
 trait Node {
   val kind: Int

@@ -1,11 +1,10 @@
-package de.terrestris.java2typescript
-package parser
+package de.terrestris.java2typescript.parser
 
 import com.github.javaparser.StaticJavaParser
 import com.github.javaparser.ast.body.MethodDeclaration
-import scala.jdk.CollectionConverters.*
 
-import java.util.Optional
+import de.terrestris.java2typescript.ast
+import de.terrestris.java2typescript.transformer
 
 def parseMethodBody(code: String): List[ast.Node] = {
   val body = StaticJavaParser.parse(code)
