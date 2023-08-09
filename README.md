@@ -1,3 +1,12 @@
+java2typescript
+===============
+
+Software to convert a Java program to TypeScript. It is targeted for JTS.
+
+Developed following TDD principles.
+
+It uses the typescript compiler in a dedicated process to write typescript code.
+
 Getting Started
 ---------------
 
