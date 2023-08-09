@@ -1,1 +1,9 @@
 /.idea/
+
+/project/project/*
+/project/target/*
+
+/src/main/javascript/dist/*
+/src/main/javascript/node_modules/*
+
+/target/*
