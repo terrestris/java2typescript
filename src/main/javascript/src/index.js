@@ -16,7 +16,7 @@ process.stdin.on('end', function () {
     const nodes = Array.isArray(input) ? input : [input];
     const result = nodes.map(n =>
         printer.printNode(EmitHint.Unspecified, n, sourceFile)
-    ).join('');
+    ).join('\n');
 
     console.log(result);
 });

@@ -9,5 +9,8 @@ lazy val root = (project in file("."))
     libraryDependencies += "org.scalactic" %% "scalactic" % "3.2.16",
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.16" % "test",
     libraryDependencies += "com.github.javaparser" % "javaparser-core" % "3.25.4",
-    libraryDependencies += "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.15.1"
+    libraryDependencies += "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.15.1",
+    libraryDependencies += "org.scala-lang" %% "toolkit" % "0.1.7"
   )
+
+Test / fork := true

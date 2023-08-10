@@ -1,8 +1,9 @@
 package de.terrestris.java2typescript.transformer
 
-import com.github.javaparser.ast.{CompilationUnit, ImportDeclaration, NodeList, PackageDeclaration}
+import com.github.javaparser.ast.Modifier.Keyword
+import com.github.javaparser.ast.{CompilationUnit, ImportDeclaration, Modifier, NodeList, PackageDeclaration}
 import com.github.javaparser.ast.`type`.{ClassOrInterfaceType, Type}
-import com.github.javaparser.ast.body.{ClassOrInterfaceDeclaration, TypeDeclaration, VariableDeclarator}
+import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, FieldDeclaration, TypeDeclaration, VariableDeclarator}
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.expr.BinaryExpr.Operator
 import com.github.javaparser.ast.stmt.{BlockStmt, ExpressionStmt, LocalClassDeclarationStmt, Statement}
@@ -57,17 +58,26 @@ def transformStatement(stmt: Statement): ast.Node =
     case stmt: LocalClassDeclarationStmt => transformClassOrInterfaceDeclaration(stmt.getClassDeclaration)
     case _ => throw new Error("not supported")
 
-def transformClassOrInterfaceDeclaration(decl: ClassOrInterfaceDeclaration, modifiersArg: List[ast.Modifier] = List()) =
+def transformClassOrInterfaceDeclaration(decl: ClassOrInterfaceDeclaration, additionalModifiers: List[ast.Modifier] = List()) =
+  val memberVals = decl.getMembers.asScala.map(transformMember).toList
   if (decl.isInterface)
-    ast.InterfaceDeclaration(transformName(decl.getName), modifiers = modifiersArg)
+    ast.InterfaceDeclaration(transformName(decl.getName), members = memberVals, modifiers = additionalModifiers)
   else
-    ast.ClassDeclaration(transformName(decl.getName), modifiers = modifiersArg)
+    ast.ClassDeclaration(transformName(decl.getName), members = memberVals, modifiers = additionalModifiers)
+
+def transformMember(member: BodyDeclaration[?]): ast.Member =
+  member match
+    case member: FieldDeclaration =>
+      val variables = member.getVariables.asScala.toList
+      if (variables.length != 1)
+        throw new Error(s"amount of variables in member not supported (${variables.length})")
+      transformDeclaratorToProperty(variables.head, member.getModifiers.asScala.toList)
 
 def transformExpression(expr: Expression): ast.Expression =
   expr match
     case expr: VariableDeclarationExpr =>
       ast.VariableDeclarationList(
-        expr.getVariables.asScala.map(transformDeclarator).toList
+        expr.getVariables.asScala.map(transformDeclaratorToVariable).toList
       )
     case expr: LiteralExpr => transformLiteral(expr)
     case expr: ObjectCreationExpr => transformObjectCreationExpression(expr)
@@ -100,12 +110,27 @@ def transformObjectCreationExpression(expr: ObjectCreationExpr) =
 def transformArguments(expressions: NodeList[Expression]) =
   expressions.asScala.map(transformExpression).toList
 
-def transformDeclarator(decl: VariableDeclarator): ast.VariableDeclaration =
+def transformDeclaratorToVariable(decl: VariableDeclarator): ast.VariableDeclaration =
   ast.VariableDeclaration(
     transformName(decl.getName),
     transformType(decl.getType),
     decl.getInitializer.toScala.map(transformExpression)
   )
+
+def transformDeclaratorToProperty(decl: VariableDeclarator, modifiers: List[Modifier]): ast.PropertyDeclaration =
+  ast.PropertyDeclaration(
+    transformName(decl.getName),
+    transformType(decl.getType),
+    decl.getInitializer.toScala.map(transformExpression),
+    modifiers.map(transformModifier)
+  )
+
+def transformModifier(modifier: Modifier): ast.Modifier =
+  modifier.getKeyword match
+    case Keyword.PUBLIC => ast.PublicKeyword()
+    case Keyword.PROTECTED => ast.ProtectedKeyword()
+    case Keyword.PRIVATE => ast.PrivateKeyword()
+    case key => throw new Error(s"Modifier $key not supported")
 
 def transformName(name: SimpleName): ast.Identifier =
   ast.Identifier(name.getIdentifier)
