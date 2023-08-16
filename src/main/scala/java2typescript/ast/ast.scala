@@ -13,9 +13,11 @@ trait Keyword extends Node
 
 trait Token extends Node
 
-type Type = Keyword|TypeReference
+trait Modifier extends Node
 
-type Modifier = ExportKeyword
+trait Member extends Node
+
+type Type = Keyword|TypeReference
 
 class Identifier(val escapedText: String) extends Node {
   val kind = 80
@@ -23,7 +25,6 @@ class Identifier(val escapedText: String) extends Node {
 
 class VariableDeclaration(
   val name: Identifier,
-  //  exclamationToken: Null,
   val `type`: Type,
   val initializer: Option[Expression]
 ) extends Node {
@@ -41,7 +42,7 @@ class ClassDeclaration(
   val name: Identifier,
   val typeParameters: List[Type] = List(),
   val heritageClauses: List[Type] = List(),
-  val members: List[Object] = List(),
+  val members: List[Member] = List(),
   val modifiers: List[Modifier] = List()
 ) extends Node {
   val kind = 262
@@ -51,7 +52,7 @@ class InterfaceDeclaration(
   val name: Identifier,
   val typeParameters: List[Type] = List(),
   val heritageClauses: List[Type] = List(),
-  val members: List[Object] = List(),
+  val members: List[Member] = List(),
   val modifiers: List[Modifier] = List()
 ) extends Node {
   val kind = 263
@@ -84,8 +85,41 @@ class ImportSpecifier(
   val isTypeOnly = false
 }
 
-class ExportKeyword() extends Node {
+// Members
+
+class PropertyDeclaration(
+  val name: Identifier,
+  val `type`: Type,
+  val initializer: Option[Expression],
+  val modifiers: List[Modifier] = List()
+) extends Member {
+  val kind = 171
+}
+
+class MethodDeclaration extends Member {
+  val kind = 173
+}
+
+class Constructor extends Member {
+  val kind = 175
+}
+
+// Modifiers
+
+class ExportKeyword() extends Modifier {
   val kind = 95
+}
+
+class PrivateKeyword() extends Modifier {
+  val kind = 123
+}
+
+class ProtectedKeyword() extends Modifier {
+  val kind = 124
+}
+
+class PublicKeyword() extends Modifier {
+  val kind = 125
 }
 
 // Expression
@@ -102,7 +136,7 @@ class VariableDeclarationList(
 class NewExpression (
   val expression: Identifier,
   val arguments: List[Expression] = List(),
-  val typeArguments: List[Keyword|TypeReference] = List()
+  val typeArguments: List[Type] = List()
 ) extends Expression {
   val kind = 213
 }
