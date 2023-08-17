@@ -1,4 +1,6 @@
-import {createSourceFile, createPrinter, ScriptTarget, EmitHint} from "typescript";
+// import {createSourceFile, createPrinter, forEachChild, ScriptTarget, SyntaxKind, EmitHint, factory} from "typescript";
+
+import {Project, printNode, ts} from "ts-morph"
 
 process.stdin.resume();
 process.stdin.setEncoding('utf-8');
@@ -10,13 +12,29 @@ process.stdin.on('data', function (chunk) {
 });
 
 process.stdin.on('end', function () {
-    const sourceFile = createSourceFile("x.ts", '', ScriptTarget.Latest);
-    const printer = createPrinter();
     var input = JSON.parse(data);
-    const nodes = Array.isArray(input) ? input : [input];
-    const result = nodes.map(n =>
-        printer.printNode(EmitHint.Unspecified, n, sourceFile)
-    ).join('\n');
-
-    console.log(result);
+    console.log(writeCode(input));
 });
+
+function transformNode(node) {
+    node.transform(traversal => {
+        const node = traversal.visitChildren();
+
+        if (ts.isBlock(node)) {
+            return traversal.factory.createBlock(node.statements, true);
+        }
+        return node;
+    });
+}
+
+function writeCode(input) {
+    const nodes = Array.isArray(input) ? input : [input];
+    const code = nodes.map(printNode).join('\n');
+
+    const project = new Project();
+    const sourceFile = project.createSourceFile("x.ts", code);
+
+    transformNode(sourceFile);
+
+    return sourceFile.compilerNode.statements.map(printNode).join('\n');
+}

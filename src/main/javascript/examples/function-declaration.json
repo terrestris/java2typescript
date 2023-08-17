@@ -1,0 +1,15 @@
+{
+  "kind": 261,
+  "name": {
+    "kind": 80,
+    "escapedText": "f"
+  },
+  "body": {
+    "kind": 240,
+    "statements": [
+      {
+        "kind": 252
+      }
+    ]
+  }
+}
