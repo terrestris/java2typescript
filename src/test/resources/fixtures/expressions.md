@@ -62,3 +62,12 @@ Double a = -2 + 3 - 4 / 5 * (6 + 7);
 ```typescript
 let a: number = -2 + 3 - 4 / 5 * (6 + 7);
 ```
+
+## Complex boolean expression
+options: methodBody
+```java
+Boolean x = true && false || true != true == false;
+```
+```typescript
+let x: boolean = true && false || true !== true === false;
+```

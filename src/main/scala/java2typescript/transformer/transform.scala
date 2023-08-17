@@ -6,7 +6,7 @@ import com.github.javaparser.ast.`type`.{ClassOrInterfaceType, Type, VoidType}
 import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, FieldDeclaration, MethodDeclaration, Parameter, TypeDeclaration, VariableDeclarator}
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.expr.BinaryExpr.Operator
-import com.github.javaparser.ast.stmt.{BlockStmt, ExpressionStmt, LocalClassDeclarationStmt, ReturnStmt, Statement}
+import com.github.javaparser.ast.stmt.{BlockStmt, ExpressionStmt, IfStmt, LocalClassDeclarationStmt, ReturnStmt, Statement}
 import de.terrestris.java2typescript.ast
 import de.terrestris.java2typescript.util.resolveImportPath
 
@@ -45,8 +45,8 @@ def transformTypeDeclaration(decl: TypeDeclaration[?], modifiers: List[ast.Modif
     case decl: ClassOrInterfaceDeclaration => transformClassOrInterfaceDeclaration(decl, modifiers)
     case _ => throw new Error("not supported")
 
-def transformBlockStatement(stmt: BlockStmt): List[ast.Node] =
-  stmt.getStatements.asScala.map(transformStatement).toList
+def transformBlockStatement(stmt: BlockStmt): ast.Block =
+  ast.Block(stmt.getStatements.asScala.map(transformStatement).toList)
 
 def transformStatement(stmt: Statement): ast.Statement =
   stmt match
@@ -57,7 +57,16 @@ def transformStatement(stmt: Statement): ast.Statement =
         case expr => ast.ExpressionStatement(expr)
     case stmt: LocalClassDeclarationStmt => transformClassOrInterfaceDeclaration(stmt.getClassDeclaration)
     case stmt: ReturnStmt => ast.ReturnStatement(stmt.getExpression.toScala.map(transformExpression))
+    case stmt: IfStmt => transformIfStatement(stmt)
+    case stmt: BlockStmt => transformBlockStatement(stmt)
     case _ => throw new Error("not supported")
+
+def transformIfStatement(stmt: IfStmt) =
+  ast.IfStatement(
+    transformExpression(stmt.getCondition),
+    transformStatement(stmt.getThenStmt),
+    stmt.getElseStmt.toScala.map(transformStatement)
+  )
 
 def transformClassOrInterfaceDeclaration(decl: ClassOrInterfaceDeclaration, additionalModifiers: List[ast.Modifier] = List()) =
   val className = decl.getName.getIdentifier
@@ -129,6 +138,14 @@ def transformOperator(op: BinaryExpr.Operator|UnaryExpr.Operator): ast.Token =
     case "MINUS" => ast.MinusToken()
     case "MULTIPLY" => ast.AsteriskToken()
     case "DIVIDE" => ast.SlashToken()
+    case "AND" => ast.AmpersandAmpersandToken()
+    case "OR" => ast.BarBarToken()
+    case "EQUALS" => ast.EqualsEqualsEqualsToken()
+    case "NOT_EQUALS" => ast.ExclamationEqualsEqualsToken()
+    case "LESS_EQUALS" => ast.LessThanEqualsToken()
+    case "LESS" => ast.LessThanToken()
+    case "GREATER" => ast.GreaterThanToken()
+    case "GREATER_EQUALS" => ast.GreaterThanEqualsToken()
     case _ => throw new Error("not supported")
 
 def transformBinaryExpression(expr: BinaryExpr): ast.BinaryExpression =
@@ -192,4 +209,9 @@ def transformLiteral(expr: LiteralExpr): ast.Literal =
       ast.StringLiteral(expr.getValue)
     case expr: (IntegerLiteralExpr|DoubleLiteralExpr) =>
       ast.NumericLiteral(expr.getValue)
+    case expr: BooleanLiteralExpr =>
+      if (expr.getValue)
+        ast.TrueKeyword()
+      else
+        ast.FalseKeyword()
     case _ => throw new Error("not supported")

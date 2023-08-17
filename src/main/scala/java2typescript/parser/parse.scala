@@ -13,7 +13,7 @@ def parseMethodBody(code: String): List[ast.Node] = {
     .getBody
     .orElseThrow()
 
-  transformer.transformBlockStatement(body)
+  transformer.transformBlockStatement(body).statements
 }
 
 def parse(code: String): List[ast.Node] = {

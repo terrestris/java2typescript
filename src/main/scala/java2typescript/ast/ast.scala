@@ -93,12 +93,6 @@ class Parameter(
   val kind = 168
 }
 
-class Block(
-  val statements: List[Statement]
-) extends Node {
-  val kind = 240
-}
-
 // Members
 
 class PropertyDeclaration(
@@ -209,6 +203,12 @@ class StringLiteral(
 
 // Statement
 
+class Block(
+  val statements: List[Statement]
+) extends Statement {
+  val kind = 240
+}
+
 class VariableStatement(
   val declarationList: VariableDeclarationList
 ) extends Statement {
@@ -221,6 +221,14 @@ class ExpressionStatement(
   val kind = 243
 }
 
+class IfStatement(
+  val expression: Expression,
+  val thenStatement: Statement,
+  val elseStatement: Option[Statement]
+) extends Statement {
+  val kind = 244
+}
+
 class ReturnStatement(
   val expression: Option[Expression]
 ) extends Statement {
@@ -228,6 +236,10 @@ class ReturnStatement(
 }
 
 // Keyword
+
+class FalseKeyword() extends Keyword, Literal {
+  val kind = 97
+}
 
 class VoidKeyword() extends Keyword {
   val kind = 116
@@ -249,11 +261,34 @@ class ThisKeyword() extends Keyword, Expression {
   val kind = 110
 }
 
+class TrueKeyword() extends Keyword, Literal {
+  val kind = 112
+}
+
 // Token
 
+class LessThanToken() extends Token {
+  val kind = 30
+}
+
+class GreaterThanToken() extends Token {
+  val kind = 32
+}
+
+class LessThanEqualsToken() extends Token {
+  val kind = 33
+}
+
+class GreaterThanEqualsToken() extends Token {
+  val kind = 34
+}
 
 class EqualsEqualsEqualsToken() extends Token {
   val kind = 37
+}
+
+class ExclamationEqualsEqualsToken() extends Token {
+  val kind = 38
 }
 
 class PlusToken() extends Token {
@@ -270,6 +305,14 @@ class SlashToken() extends Token {
 
 class AsteriskToken() extends Token {
   val kind = 42
+}
+
+class AmpersandAmpersandToken() extends Token {
+  val kind = 56
+}
+
+class BarBarToken() extends Token {
+  val kind = 57
 }
 
 class EqualsToken() extends Token {

@@ -56,11 +56,9 @@ def getOptions(it: BufferedIterator[String]): Options = {
   if (!it.head.startsWith("options:"))
     return Options()
   val line = it.next()
-  val pattern = "options:(?:\\s*(\\w+)\\s*,?)*".r
   val options = Options()
-  val patternMatch = pattern.findFirstMatchIn(line)
-  for group <- patternMatch.get.subgroups do
-    group match {
+  for option <- line.substring(8).trim.split("\\s*,\\s*") do
+    option match {
       case "debug" => options.debug = true
       case "methodBody" => options.methodBody = true
       case s: String => throw new Error(s"unrecognized option $s")
