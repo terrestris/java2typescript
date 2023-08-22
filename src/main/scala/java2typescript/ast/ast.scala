@@ -9,32 +9,30 @@ trait Expression extends Node
 
 trait Statement extends Node
 
-trait Keyword extends Node
-
 trait Token extends Node
 
 trait Modifier extends Node
 
 trait Member extends Node
 
-type Type = Keyword|TypeReference
+trait Type extends Node
 
 class Identifier(val escapedText: String) extends Expression {
   val kind = 80
 }
 
-class VariableDeclaration(
+class Parameter(
   val name: Identifier,
   val `type`: Type,
-  val initializer: Option[Expression]
+  val modifiers: List[Modifier] = List()
 ) extends Node {
-  val kind = 259
+  val kind = 168
 }
 
 class TypeReference(
   val typeName: Identifier,
   val typeArguments: List[Type] = List()
-) extends Node {
+) extends Type {
   val kind = 182
 }
 
@@ -46,6 +44,14 @@ class ClassDeclaration(
   val modifiers: List[Modifier] = List()
 ) extends Statement {
   val kind = 262
+}
+
+class VariableDeclaration(
+  val name: Identifier,
+  val `type`: Type,
+  val initializer: Option[Expression]
+) extends Node {
+  val kind = 259
 }
 
 class InterfaceDeclaration(
@@ -85,12 +91,10 @@ class ImportSpecifier(
   val isTypeOnly = false
 }
 
-class Parameter(
-  val name: Identifier,
-  val `type`: Type,
-  val modifiers: List[Modifier] = List()
-) extends Node {
-  val kind = 168
+class ArrayType(
+  val elementType: Type
+) extends Type {
+  val kind = 187
 }
 
 // Members
@@ -123,33 +127,36 @@ class Constructor(
   val kind = 175
 }
 
-// Modifiers
-
-class ExportKeyword() extends Modifier {
-  val kind = 95
-}
-
-class PrivateKeyword() extends Modifier {
-  val kind = 123
-}
-
-class ProtectedKeyword() extends Modifier {
-  val kind = 124
-}
-
-class PublicKeyword() extends Modifier {
-  val kind = 125
-}
-
 // Expression
 
 trait Literal extends Expression
 
-class VariableDeclarationList(
-  val declarations: List[VariableDeclaration],
-  override val flags: Int = 1 // 1 = Let
+class ArrayLiteralExpression(
+  val elements: List[Expression]
 ) extends Expression {
-  val kind = 260
+  val kind = 208
+}
+
+class PropertyAccessExpression(
+  val expression: Expression,
+  val name: Identifier
+) extends Expression {
+  val kind = 210
+}
+
+class ElementAccessExpression(
+  val expression: Expression,
+  val argumentExpression: Expression
+) extends Expression {
+  val kind = 211
+}
+
+class CallExpression(
+  val expression: Expression,
+  val arguments: List[Expression] = List(),
+  val typeArguments: List[Type] = List()
+) extends Expression {
+  val kind = 212
 }
 
 class NewExpression (
@@ -158,6 +165,12 @@ class NewExpression (
   val typeArguments: List[Type] = List()
 ) extends Expression {
   val kind = 213
+}
+
+class ParenthesizedExpression(
+  val expression: Expression
+) extends Expression {
+  val kind = 216
 }
 
 class BinaryExpression(
@@ -175,17 +188,11 @@ class PrefixUnaryExpression(
   val kind = 223
 }
 
-class ParenthesizedExpression(
-  val expression: Expression
+class VariableDeclarationList(
+  val declarations: List[VariableDeclaration],
+  override val flags: Int = 1 // 1 = Let
 ) extends Expression {
-  val kind = 216
-}
-
-class PropertyAccessExpression(
-  val expression: Expression,
-  val name: Identifier
-) extends Expression {
-  val kind = 210
+  val kind = 260
 }
 
 // Literal
@@ -237,32 +244,48 @@ class ReturnStatement(
 
 // Keyword
 
-class FalseKeyword() extends Keyword, Literal {
+class ExportKeyword() extends Modifier {
+  val kind = 95
+}
+
+class FalseKeyword() extends Literal {
   val kind = 97
 }
 
-class VoidKeyword() extends Keyword {
-  val kind = 116
-}
-
-class NumberKeyword() extends Keyword {
-  val kind = 150
-}
-
-class BooleanKeyword() extends Keyword {
-  val kind = 136
-}
-
-class StringKeyword() extends Keyword {
-  val kind = 154
-}
-
-class ThisKeyword() extends Keyword, Expression {
+class ThisKeyword() extends Expression {
   val kind = 110
 }
 
-class TrueKeyword() extends Keyword, Literal {
+class TrueKeyword() extends Literal {
   val kind = 112
+}
+
+class VoidKeyword() extends Type {
+  val kind = 116
+}
+
+class PrivateKeyword() extends Modifier {
+  val kind = 123
+}
+
+class ProtectedKeyword() extends Modifier {
+  val kind = 124
+}
+
+class PublicKeyword() extends Modifier {
+  val kind = 125
+}
+
+class BooleanKeyword() extends Type {
+  val kind = 136
+}
+
+class NumberKeyword() extends Type {
+  val kind = 150
+}
+
+class StringKeyword() extends Type {
+  val kind = 154
 }
 
 // Token
