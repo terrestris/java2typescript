@@ -91,3 +91,17 @@ export class A {
     }
 }
 ```
+
+## Extract internal classes
+```java
+class A {
+    private class B {
+    }
+}
+```
+```typescript
+export class A {
+}
+class B {
+}
+```

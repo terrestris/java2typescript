@@ -2,21 +2,24 @@ package de.terrestris.java2typescript.transformer
 
 import com.github.javaparser.ast.Modifier.Keyword
 import com.github.javaparser.ast.{CompilationUnit, ImportDeclaration, Modifier, NodeList, PackageDeclaration}
-import com.github.javaparser.ast.`type`.{ArrayType, ClassOrInterfaceType, Type, VoidType}
+import com.github.javaparser.ast.`type`.{ArrayType, ClassOrInterfaceType, PrimitiveType, Type, VoidType}
 import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, FieldDeclaration, MethodDeclaration, Parameter, TypeDeclaration, VariableDeclarator}
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.expr.BinaryExpr.Operator
-import com.github.javaparser.ast.stmt.{BlockStmt, ExpressionStmt, IfStmt, LocalClassDeclarationStmt, ReturnStmt, Statement}
+import com.github.javaparser.ast.stmt.{BlockStmt, ExpressionStmt, IfStmt, ReturnStmt, Statement}
 import de.terrestris.java2typescript.ast
 import de.terrestris.java2typescript.util.resolveImportPath
 
 import java.util.Optional
+import scala.::
+import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
 class Context(
   val classOrInterface: ClassOrInterfaceDeclaration
 ) {
+  val internalClasses: mutable.Buffer[ast.ClassDeclaration|ast.InterfaceDeclaration] = mutable.Buffer()
   def isMember(name: SimpleName): Boolean =
     classOrInterface.getMembers.asScala
       .exists(mem => mem match
@@ -32,7 +35,7 @@ class Context(
 def transformCompilationUnit(cu: CompilationUnit): List[ast.Node] =
   cu.getImports.asScala.map(i => transformImport(cu.getPackageDeclaration, i)).toList
   :::
-  cu.getTypes.asScala.map(t => transformTypeDeclaration(t, List(ast.ExportKeyword()))).toList
+  cu.getTypes.asScala.flatMap(t => transformTypeDeclaration(t, List(ast.ExportKeyword()))).toList
 
 def transformImport(pack: Optional[PackageDeclaration], importDeclaration: ImportDeclaration) = {
   val packagePath = pack.map(p => p.getName.toString.split("\\.")).orElse(Array[String]())
@@ -70,7 +73,7 @@ def transformStatement(context: Context, stmt: Statement): ast.Statement =
       expr match
         case expr: ast.VariableDeclarationList => ast.VariableStatement(expr)
         case expr => ast.ExpressionStatement(expr)
-    case stmt: LocalClassDeclarationStmt => transformClassOrInterfaceDeclaration(stmt.getClassDeclaration)
+//    case stmt: LocalClassDeclarationStmt => transformClassOrInterfaceDeclaration(stmt.getClassDeclaration)
     case stmt: ReturnStmt => ast.ReturnStatement(stmt.getExpression.toScala.map(transformExpression.curried(context)))
     case stmt: IfStmt => transformIfStatement(context, stmt)
     case stmt: BlockStmt => transformBlockStatement(context, stmt)
@@ -83,40 +86,56 @@ def transformIfStatement(context: Context, stmt: IfStmt) =
     stmt.getElseStmt.toScala.map(transformStatement.curried(context))
   )
 
-def transformClassOrInterfaceDeclaration(decl: ClassOrInterfaceDeclaration, additionalModifiers: List[ast.Modifier] = List()) =
+def transformClassOrInterfaceDeclaration(
+  decl: ClassOrInterfaceDeclaration,
+  additionalModifiers: List[ast.Modifier] = List()
+): List[ast.ClassDeclaration|ast.InterfaceDeclaration] =
   val className = decl.getName.getIdentifier
   val context = Context(decl)
-  val memberVals = decl.getMembers.asScala.map(transformMember.curried(context)).toList
+  val memberVals = decl.getMembers.asScala.flatMap(transformMember.curried(context)).toList
   if (decl.isInterface)
     ast.InterfaceDeclaration(transformName(decl.getName), members = memberVals, modifiers = additionalModifiers)
+    ::
+    context.internalClasses.toList
   else
     ast.ClassDeclaration(transformName(decl.getName), members = memberVals, modifiers = additionalModifiers)
+    ::
+    context.internalClasses.toList
 
-def transformMember(context: Context, member: BodyDeclaration[?]): ast.Member =
+def transformMember(context: Context, member: BodyDeclaration[?]): Option[ast.Member] =
   member match
     case member: FieldDeclaration =>
       val variables = member.getVariables.asScala.toList
       if (variables.length != 1)
         throw new Error(s"amount of variables in member not supported (${variables.length})")
-      transformDeclaratorToProperty(context, variables.head, member.getModifiers.asScala.toList)
+      Some(transformDeclaratorToProperty(context, variables.head, member.getModifiers.asScala.toList))
     case member: MethodDeclaration =>
-      transformMethodDeclaration(context, member)
+      Some(transformMethodDeclaration(context, member))
+    case member: ClassOrInterfaceDeclaration =>
+      context.internalClasses.appendAll(transformClassOrInterfaceDeclaration(member))
+      None
 
 def transformMethodDeclaration(context: Context, decl: MethodDeclaration) =
+  val methodBody = decl.getBody.toScala.map(body =>
+    ast.Block(body.getStatements.asScala.map(transformStatement.curried(context)).toList)
+  )
+  val methodParameters = decl.getParameters.asScala.map(transformParameter).toList
+  val methodModifiers = decl.getModifiers.asScala.map(transformModifier).toList
+
   if (context.isConstructor(decl.getName))
     ast.Constructor(
-      parameters = decl.getParameters.asScala.map(transformParameter).toList,
-      body = decl.getBody.toScala.map(body => ast.Block(body.getStatements.asScala.map(transformStatement.curried(context)).toList)),
-      modifiers = decl.getModifiers.asScala.map(transformModifier).toList
+      parameters = methodParameters,
+      body = methodBody,
+      modifiers = methodModifiers
     )
   else
     ast.MethodDeclaration(
       transformName(decl.getName),
       `type` = transformType(decl.getType),
       typeParameters = decl.getTypeParameters.asScala.map(transformType).toList,
-      parameters = decl.getParameters.asScala.map(transformParameter).toList,
-      body = decl.getBody.toScala.map(body => ast.Block(body.getStatements.asScala.map(transformStatement.curried(context)).toList)),
-      modifiers = decl.getModifiers.asScala.map(transformModifier).toList
+      parameters = methodParameters,
+      body = methodBody,
+      modifiers = methodModifiers
     )
 
 def transformParameter(param: Parameter) =
@@ -265,6 +284,8 @@ def transformType(aType: Type): ast.Type =
         case other => ast.TypeReference(ast.Identifier(other), transformTypeArguments(aType.getTypeArguments))
     case aType: VoidType => ast.VoidKeyword()
     case aType: ArrayType => ast.ArrayType(transformType(aType.getComponentType))
+    case aType: PrimitiveType =>
+      transformType(aType.toBoxedType)
     case _ => throw new Error("not supported")
 
 def transformTypeArguments(args: Optional[NodeList[Type]]): List[ast.Type] =
