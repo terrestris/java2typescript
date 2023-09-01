@@ -29,7 +29,7 @@ class FixtureCollection(
   val fixtures: List[Fixture]
 )
 
-def dropWhile(it: BufferedIterator[String], condition: (String) => Boolean): Unit =
+def dropWhile(it: BufferedIterator[String], condition: String => Boolean): Unit =
   while (condition(it.head))
     it.next()
 
@@ -56,11 +56,9 @@ def getOptions(it: BufferedIterator[String]): Options = {
   if (!it.head.startsWith("options:"))
     return Options()
   val line = it.next()
-  val pattern = "options:(?:\\s*(\\w+)\\s*,?)*".r
   val options = Options()
-  val patternMatch = pattern.findFirstMatchIn(line)
-  for group <- patternMatch.get.subgroups do
-    group match {
+  for option <- line.substring(8).trim.split("\\s*,\\s*") do
+    option match {
       case "debug" => options.debug = true
       case "methodBody" => options.methodBody = true
       case s: String => throw new Error(s"unrecognized option $s")
@@ -89,7 +87,7 @@ def fixtures(): List[FixtureCollection] = {
   val folder = File(fixturesDir.getPath)
   if (!folder.exists || !folder.isDirectory)
     return List()
-  folder.listFiles
+  val fixColls = folder.listFiles
     .filter(f => f.getName.endsWith(".md"))
     .map(f => {
       val source = Source.fromFile(f)
@@ -99,6 +97,14 @@ def fixtures(): List[FixtureCollection] = {
       collection
     })
     .toList
+  val anyDebug = fixColls.exists(coll => coll.fixtures.exists(f => f.options.debug))
+  if (anyDebug)
+    println("Found fixtures with debug option. Only running those fixtures.")
+    fixColls
+      .filter(coll => coll.fixtures.exists(f => f.options.debug))
+      .map(coll => FixtureCollection(coll.title, coll.fixtures.filter(f => f.options.debug)))
+  else
+    fixColls
 }
 
 class FixturesSpec extends AnyFunSpec with Matchers {
@@ -108,11 +114,6 @@ class FixturesSpec extends AnyFunSpec with Matchers {
         forAll(collection.fixtures) {
           fix => {
             it(fix.title) {
-              if (fix.options.debug) {
-                // put break point here
-                println("Debug option")
-              }
-
               val parsed = if (fix.options.methodBody)
                 parseMethodBody(wrapStatementJava(fix.javaCode))
               else
@@ -120,6 +121,8 @@ class FixturesSpec extends AnyFunSpec with Matchers {
 
               val written = write(parsed)
               written should be(fix.typeScriptCode)
+              if (fix.options.debug)
+                throw new Error("Fixture has debug option enabled")
             }
           }
         }

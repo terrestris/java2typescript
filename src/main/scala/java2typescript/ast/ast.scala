@@ -19,7 +19,7 @@ trait Member extends Node
 
 type Type = Keyword|TypeReference
 
-class Identifier(val escapedText: String) extends Node {
+class Identifier(val escapedText: String) extends Expression {
   val kind = 80
 }
 
@@ -44,7 +44,7 @@ class ClassDeclaration(
   val heritageClauses: List[Type] = List(),
   val members: List[Member] = List(),
   val modifiers: List[Modifier] = List()
-) extends Node {
+) extends Statement {
   val kind = 262
 }
 
@@ -54,7 +54,7 @@ class InterfaceDeclaration(
   val heritageClauses: List[Type] = List(),
   val members: List[Member] = List(),
   val modifiers: List[Modifier] = List()
-) extends Node {
+) extends Statement {
   val kind = 263
 }
 
@@ -85,6 +85,14 @@ class ImportSpecifier(
   val isTypeOnly = false
 }
 
+class Parameter(
+  val name: Identifier,
+  val `type`: Type,
+  val modifiers: List[Modifier] = List()
+) extends Node {
+  val kind = 168
+}
+
 // Members
 
 class PropertyDeclaration(
@@ -96,11 +104,22 @@ class PropertyDeclaration(
   val kind = 171
 }
 
-class MethodDeclaration extends Member {
+class MethodDeclaration(
+  val name: Identifier,
+  val `type`: Type,
+  val parameters: List[Parameter] = List(),
+  val typeParameters: List[Type] = List(),
+  val body: Option[Block] = None,
+  val modifiers: List[Modifier] = List(),
+) extends Member {
   val kind = 173
 }
 
-class Constructor extends Member {
+class Constructor(
+  val parameters: List[Parameter] = List(),
+  val body: Option[Block] = None,
+  val modifiers: List[Modifier] = List(),
+) extends Member {
   val kind = 175
 }
 
@@ -162,6 +181,13 @@ class ParenthesizedExpression(
   val kind = 216
 }
 
+class PropertyAccessExpression(
+  val expression: Expression,
+  val name: Identifier
+) extends Expression {
+  val kind = 210
+}
+
 // Literal
 
 class NumericLiteral(val text: String) extends Literal {
@@ -169,29 +195,101 @@ class NumericLiteral(val text: String) extends Literal {
 }
 
 class StringLiteral(
-  val text: String,
-  val hasExtendedUnicodeEscape: Boolean = false
+  val text: String
 ) extends Literal {
   val kind = 11
+  val hasExtendedUnicodeEscape = false
 }
 
 // Statement
 
-class VariableStatement(val declarationList: VariableDeclarationList) extends Statement {
+class Block(
+  val statements: List[Statement]
+) extends Statement {
+  val kind = 240
+}
+
+class VariableStatement(
+  val declarationList: VariableDeclarationList
+) extends Statement {
   val kind = 242
+}
+
+class ExpressionStatement(
+  val expression: Expression
+) extends Statement {
+  val kind = 243
+}
+
+class IfStatement(
+  val expression: Expression,
+  val thenStatement: Statement,
+  val elseStatement: Option[Statement]
+) extends Statement {
+  val kind = 244
+}
+
+class ReturnStatement(
+  val expression: Option[Expression]
+) extends Statement {
+  val kind = 252
 }
 
 // Keyword
 
-class StringKeyword() extends Keyword {
-  val kind = 154
+class FalseKeyword() extends Keyword, Literal {
+  val kind = 97
+}
+
+class VoidKeyword() extends Keyword {
+  val kind = 116
 }
 
 class NumberKeyword() extends Keyword {
   val kind = 150
 }
 
+class BooleanKeyword() extends Keyword {
+  val kind = 136
+}
+
+class StringKeyword() extends Keyword {
+  val kind = 154
+}
+
+class ThisKeyword() extends Keyword, Expression {
+  val kind = 110
+}
+
+class TrueKeyword() extends Keyword, Literal {
+  val kind = 112
+}
+
 // Token
+
+class LessThanToken() extends Token {
+  val kind = 30
+}
+
+class GreaterThanToken() extends Token {
+  val kind = 32
+}
+
+class LessThanEqualsToken() extends Token {
+  val kind = 33
+}
+
+class GreaterThanEqualsToken() extends Token {
+  val kind = 34
+}
+
+class EqualsEqualsEqualsToken() extends Token {
+  val kind = 37
+}
+
+class ExclamationEqualsEqualsToken() extends Token {
+  val kind = 38
+}
 
 class PlusToken() extends Token {
   val kind = 40
@@ -207,4 +305,16 @@ class SlashToken() extends Token {
 
 class AsteriskToken() extends Token {
   val kind = 42
+}
+
+class AmpersandAmpersandToken() extends Token {
+  val kind = 56
+}
+
+class BarBarToken() extends Token {
+  val kind = 57
+}
+
+class EqualsToken() extends Token {
+  val kind = 64
 }

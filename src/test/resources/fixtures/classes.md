@@ -35,3 +35,35 @@ export class A {
     d: string;
 }
 ```
+
+## With constructor member
+```java
+class A {
+    public void A(Double param) {
+        this.param = param;
+    }
+}
+```
+```typescript
+export class A {
+    public constructor(param: number) {
+        this.param = param;
+    }
+}
+```
+
+## With function member
+```java
+class A {
+    private String method(Boolean param) {
+        return param;
+    }
+}
+```
+```typescript
+export class A {
+    private method(param: boolean): string {
+        return param;
+    }
+}
+```
