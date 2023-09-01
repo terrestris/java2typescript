@@ -14,7 +14,8 @@ import java2typescript.writer.write
 
 class Options(
   var debug: Boolean = false,
-  var methodBody: Boolean = false
+  var methodBody: Boolean = false,
+  var skip: Boolean = false
 )
 
 class Fixture(
@@ -61,6 +62,7 @@ def getOptions(it: BufferedIterator[String]): Options = {
     option match {
       case "debug" => options.debug = true
       case "methodBody" => options.methodBody = true
+      case "skip" => options.skip = true
       case s: String => throw new Error(s"unrecognized option $s")
     }
   options
@@ -112,7 +114,7 @@ class FixturesSpec extends AnyFunSpec with Matchers {
     collection => {
       describe(collection.title) {
         forAll(collection.fixtures) {
-          fix => {
+          fix => if (!fix.options.skip)
             it(fix.title) {
               val parsed = if (fix.options.methodBody)
                 parseMethodBody(wrapStatementJava(fix.javaCode))
@@ -124,7 +126,6 @@ class FixturesSpec extends AnyFunSpec with Matchers {
               if (fix.options.debug)
                 throw new Error("Fixture has debug option enabled")
             }
-          }
         }
       }
     }

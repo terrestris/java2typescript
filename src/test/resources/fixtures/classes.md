@@ -67,3 +67,41 @@ export class A {
     }
 }
 ```
+
+## Identify member access
+```java
+class A {
+    private Integer memVar = 0;
+    public Integer someMethod() {
+        return internalMethod() + 2;
+    }
+    private Integer internalMethod() {
+        return memVar - 2;
+    }
+}
+```
+```typescript
+export class A {
+    private memVar: number = 0;
+    public someMethod(): number {
+        return this.internalMethod() + 2;
+    }
+    private internalMethod(): number {
+        return this.memVar - 2;
+    }
+}
+```
+
+## Extract internal classes
+```java
+class A {
+    private class B {
+    }
+}
+```
+```typescript
+export class A {
+}
+class B {
+}
+```

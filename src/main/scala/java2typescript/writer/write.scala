@@ -1,5 +1,6 @@
 package de.terrestris.java2typescript.writer
 
+import com.fasterxml.jackson.annotation.JsonInclude.Include
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
@@ -14,6 +15,8 @@ def serialize(statements: List[ast.Node]) = {
     .addModule(DefaultScalaModule)
     .enable(SerializationFeature.INDENT_OUTPUT)
     .build()
+
+  mapper.setSerializationInclusion(Include.NON_ABSENT)
 
   mapper.writeValueAsString(statements)
 }

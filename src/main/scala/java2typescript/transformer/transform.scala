@@ -2,22 +2,40 @@ package de.terrestris.java2typescript.transformer
 
 import com.github.javaparser.ast.Modifier.Keyword
 import com.github.javaparser.ast.{CompilationUnit, ImportDeclaration, Modifier, NodeList, PackageDeclaration}
-import com.github.javaparser.ast.`type`.{ClassOrInterfaceType, Type, VoidType}
+import com.github.javaparser.ast.`type`.{ArrayType, ClassOrInterfaceType, PrimitiveType, Type, VoidType}
 import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, FieldDeclaration, MethodDeclaration, Parameter, TypeDeclaration, VariableDeclarator}
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.expr.BinaryExpr.Operator
-import com.github.javaparser.ast.stmt.{BlockStmt, ExpressionStmt, IfStmt, LocalClassDeclarationStmt, ReturnStmt, Statement}
+import com.github.javaparser.ast.stmt.{BlockStmt, ExpressionStmt, IfStmt, ReturnStmt, Statement}
 import de.terrestris.java2typescript.ast
 import de.terrestris.java2typescript.util.resolveImportPath
 
 import java.util.Optional
+import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
+
+class Context(
+  val classOrInterface: ClassOrInterfaceDeclaration
+) {
+  val internalClasses: mutable.Buffer[ast.ClassDeclaration|ast.InterfaceDeclaration] = mutable.Buffer()
+  def isMember(name: SimpleName): Boolean =
+    classOrInterface.getMembers.asScala
+      .exists(mem => mem match
+        case mem: FieldDeclaration =>
+          mem.getVariables.asScala.exists(v => v.getName == name)
+        case mem: MethodDeclaration =>
+          mem.getName == name
+        case _ => false
+      )
+  def isConstructor(name: SimpleName): Boolean =
+    classOrInterface.getName == name
+}
 
 def transformCompilationUnit(cu: CompilationUnit): List[ast.Node] =
   cu.getImports.asScala.map(i => transformImport(cu.getPackageDeclaration, i)).toList
   :::
-  cu.getTypes.asScala.map(t => transformTypeDeclaration(t, List(ast.ExportKeyword()))).toList
+  cu.getTypes.asScala.flatMap(t => transformTypeDeclaration(t, List(ast.ExportKeyword()))).toList
 
 def transformImport(pack: Optional[PackageDeclaration], importDeclaration: ImportDeclaration) = {
   val packagePath = pack.map(p => p.getName.toString.split("\\.")).orElse(Array[String]())
@@ -45,92 +63,188 @@ def transformTypeDeclaration(decl: TypeDeclaration[?], modifiers: List[ast.Modif
     case decl: ClassOrInterfaceDeclaration => transformClassOrInterfaceDeclaration(decl, modifiers)
     case _ => throw new Error("not supported")
 
-def transformBlockStatement(stmt: BlockStmt): ast.Block =
-  ast.Block(stmt.getStatements.asScala.map(transformStatement).toList)
+def transformBlockStatement(context: Context, stmt: BlockStmt): ast.Block =
+  ast.Block(stmt.getStatements.asScala.map(transformStatement.curried(context)).toList)
 
-def transformStatement(stmt: Statement): ast.Statement =
+def transformStatement(context: Context, stmt: Statement): ast.Statement =
   stmt match
     case stmt: ExpressionStmt =>
-      val expr = transformExpression(stmt.getExpression)
+      val expr = transformExpression(context, stmt.getExpression)
       expr match
         case expr: ast.VariableDeclarationList => ast.VariableStatement(expr)
         case expr => ast.ExpressionStatement(expr)
-    case stmt: LocalClassDeclarationStmt => transformClassOrInterfaceDeclaration(stmt.getClassDeclaration)
-    case stmt: ReturnStmt => ast.ReturnStatement(stmt.getExpression.toScala.map(transformExpression))
-    case stmt: IfStmt => transformIfStatement(stmt)
-    case stmt: BlockStmt => transformBlockStatement(stmt)
+//    case stmt: LocalClassDeclarationStmt => transformClassOrInterfaceDeclaration(stmt.getClassDeclaration)
+    case stmt: ReturnStmt => ast.ReturnStatement(stmt.getExpression.toScala.map(transformExpression.curried(context)))
+    case stmt: IfStmt => transformIfStatement(context, stmt)
+    case stmt: BlockStmt => transformBlockStatement(context, stmt)
     case _ => throw new Error("not supported")
 
-def transformIfStatement(stmt: IfStmt) =
+def transformIfStatement(context: Context, stmt: IfStmt) =
   ast.IfStatement(
-    transformExpression(stmt.getCondition),
-    transformStatement(stmt.getThenStmt),
-    stmt.getElseStmt.toScala.map(transformStatement)
+    transformExpression(context, stmt.getCondition),
+    transformStatement(context, stmt.getThenStmt),
+    stmt.getElseStmt.toScala.map(transformStatement.curried(context))
   )
 
-def transformClassOrInterfaceDeclaration(decl: ClassOrInterfaceDeclaration, additionalModifiers: List[ast.Modifier] = List()) =
+def transformClassOrInterfaceDeclaration(
+  decl: ClassOrInterfaceDeclaration,
+  additionalModifiers: List[ast.Modifier] = List()
+): List[ast.ClassDeclaration|ast.InterfaceDeclaration] =
   val className = decl.getName.getIdentifier
-  val memberVals = decl.getMembers.asScala.map(m => transformMember(m, className)).toList
-  if (decl.isInterface)
-    ast.InterfaceDeclaration(transformName(decl.getName), members = memberVals, modifiers = additionalModifiers)
-  else
-    ast.ClassDeclaration(transformName(decl.getName), members = memberVals, modifiers = additionalModifiers)
+  val context = Context(decl)
+  val memberVals = decl.getMembers.asScala.flatMap(transformMember.curried(context))
 
-def transformMember(member: BodyDeclaration[?], className: String): ast.Member =
+  if (decl.isInterface)
+    ast.InterfaceDeclaration(transformName(decl.getName), members = memberVals.toList, modifiers = additionalModifiers)
+    ::
+    context.internalClasses.toList
+  else {
+    val properties = memberVals
+      .collect {
+        case p: ast.PropertyDeclaration => p
+      }
+      .toList
+
+    val constructors = memberVals
+      .collect {
+        case c: ast.Constructor => c
+      }
+      .toList
+
+    val constructorsWithOverloads =
+      if (constructors.length > 1)
+        createConstructorOverloads(constructors)
+      else
+        constructors
+
+    val methodsWithOverloads = groupMethodsByName(memberVals
+      .collect {
+        case m: ast.MethodDeclaration => m
+      }.toList)
+      .flatMap {
+        ms =>
+          if (ms.length > 1)
+            createMethodOverloads(ms)
+          else
+            ms
+      }
+
+    ast.ClassDeclaration(
+      transformName(decl.getName),
+      members = properties ::: constructorsWithOverloads ::: methodsWithOverloads,
+      modifiers = additionalModifiers
+    )
+    ::
+    context.internalClasses.toList
+  }
+
+def transformMember(context: Context, member: BodyDeclaration[?]): Option[ast.Member] =
   member match
     case member: FieldDeclaration =>
       val variables = member.getVariables.asScala.toList
       if (variables.length != 1)
         throw new Error(s"amount of variables in member not supported (${variables.length})")
-      transformDeclaratorToProperty(variables.head, member.getModifiers.asScala.toList)
+      Some(transformDeclaratorToProperty(context, variables.head, member.getModifiers.asScala.toList))
     case member: MethodDeclaration =>
-      transformMethodDeclaration(member, className)
+      Some(transformMethodDeclaration(context, member))
+    case member: ClassOrInterfaceDeclaration =>
+      context.internalClasses.appendAll(transformClassOrInterfaceDeclaration(member))
+      None
 
-def transformMethodDeclaration(decl: MethodDeclaration, className: String) =
-  if (decl.getName.getIdentifier == className)
+def transformMethodDeclaration(context: Context, decl: MethodDeclaration) =
+  val methodBody = decl.getBody.toScala.map(body =>
+    ast.Block(body.getStatements.asScala.map(transformStatement.curried(context)).toList)
+  )
+  val methodParameters = decl.getParameters.asScala.map(transformParameter).toList
+  val methodModifiers = decl.getModifiers.asScala.map(transformModifier).toList
+
+  if (context.isConstructor(decl.getName))
     ast.Constructor(
-      parameters = decl.getParameters.asScala.map(transformParameter).toList,
-      body = decl.getBody.toScala.map(body => ast.Block(body.getStatements.asScala.map(transformStatement).toList)),
-      modifiers = decl.getModifiers.asScala.map(transformModifier).toList
+      parameters = methodParameters,
+      body = methodBody,
+      modifiers = methodModifiers
     )
   else
     ast.MethodDeclaration(
       transformName(decl.getName),
       `type` = transformType(decl.getType),
       typeParameters = decl.getTypeParameters.asScala.map(transformType).toList,
-      parameters = decl.getParameters.asScala.map(transformParameter).toList,
-      body = decl.getBody.toScala.map(body => ast.Block(body.getStatements.asScala.map(transformStatement).toList)),
-      modifiers = decl.getModifiers.asScala.map(transformModifier).toList
+      parameters = methodParameters,
+      body = methodBody,
+      modifiers = methodModifiers
     )
 
 def transformParameter(param: Parameter) =
   ast.Parameter(transformName(param.getName), transformType(param.getType))
 
-def transformExpression(expr: Expression): ast.Expression =
+def transformExpression(context: Context, expr: Expression): ast.Expression =
   expr match
     case expr: VariableDeclarationExpr =>
       ast.VariableDeclarationList(
-        expr.getVariables.asScala.map(transformDeclaratorToVariable).toList
+        expr.getVariables.asScala.map(transformDeclaratorToVariable.curried(context)).toList
       )
     case expr: LiteralExpr => transformLiteral(expr)
-    case expr: ObjectCreationExpr => transformObjectCreationExpression(expr)
-    case expr: BinaryExpr => transformBinaryExpression(expr)
-    case expr: UnaryExpr => transformUnaryExpression(expr)
-    case expr: EnclosedExpr => ast.ParenthesizedExpression(transformExpression(expr.getInner))
-    case expr: NameExpr => transformName(expr.getName)
-    case expr: AssignExpr => transformAssignExpression(expr)
-    case expr: FieldAccessExpr => transformFieldAccessExpression(expr)
+    case expr: ObjectCreationExpr => transformObjectCreationExpression(context, expr)
+    case expr: BinaryExpr => transformBinaryExpression(context, expr)
+    case expr: UnaryExpr => transformUnaryExpression(context, expr)
+    case expr: EnclosedExpr => ast.ParenthesizedExpression(transformExpression(context, expr.getInner))
+    case expr: NameExpr => transformNameInContext(context, expr.getName)
+    case expr: AssignExpr => transformAssignExpression(context, expr)
+    case expr: FieldAccessExpr => transformFieldAccessExpression(context, expr)
     case expr: ThisExpr => ast.ThisKeyword()
+    case expr: MethodCallExpr => transformMethodCall(context, expr)
+    case expr: ArrayCreationExpr => transformArrayCreationExpression(context, expr)
+    case expr: ArrayAccessExpr => transformArrayAccessExpression(context, expr)
     case _ => throw new Error("not supported")
 
-def transformFieldAccessExpression(expr: FieldAccessExpr) =
+def transformArrayAccessExpression(context: Context, expr: ArrayAccessExpr) =
+  ast.ElementAccessExpression(
+    transformExpression(context, expr.getName),
+    transformExpression(context, expr.getIndex)
+  )
+
+def transformArrayCreationExpression(context: Context, expr: ArrayCreationExpr) =
+  ast.ArrayLiteralExpression(
+    expr.getInitializer.orElseThrow().getValues.asScala.map(transformExpression.curried(context)).toList
+  )
+
+def transformMethodCall(context: Context, expr: MethodCallExpr) =
+  val scope = expr.getScope.toScala
+  val arguments = expr.getArguments.asScala.map(transformExpression.curried(context)).toList
+  if (scope.isEmpty)
+    ast.CallExpression(
+      transformNameInContext(context, expr.getName),
+      arguments
+    )
+  else
+    ast.CallExpression(
+      ast.PropertyAccessExpression(
+        transformExpression(context, scope.get),
+        transformName(expr.getName)
+      ),
+      arguments
+    )
+
+def transformNameInContext(context: Context, name: SimpleName) =
+  if (context.isMember(name))
+    ast.PropertyAccessExpression(
+      ast.ThisKeyword(),
+      transformName(name)
+    )
+  else
+    transformName(name)
+
+def transformFieldAccessExpression(context: Context, expr: FieldAccessExpr) =
   ast.PropertyAccessExpression(
-    transformExpression(expr.getScope),
+    transformExpression(context, expr.getScope),
     transformName(expr.getName)
   )
 
-def transformAssignExpression(expr: AssignExpr) =
-  ast.BinaryExpression(transformExpression(expr.getTarget), transformExpression(expr.getValue), ast.EqualsToken())
+def transformAssignExpression(context: Context, expr: AssignExpr) =
+  ast.BinaryExpression(
+    transformExpression(context, expr.getTarget),
+    transformExpression(context, expr.getValue), ast.EqualsToken()
+  )
 
 def transformOperator(op: BinaryExpr.Operator|UnaryExpr.Operator): ast.Token =
   op.name match
@@ -148,34 +262,41 @@ def transformOperator(op: BinaryExpr.Operator|UnaryExpr.Operator): ast.Token =
     case "GREATER_EQUALS" => ast.GreaterThanEqualsToken()
     case _ => throw new Error("not supported")
 
-def transformBinaryExpression(expr: BinaryExpr): ast.BinaryExpression =
-  ast.BinaryExpression(transformExpression(expr.getLeft), transformExpression(expr.getRight), transformOperator(expr.getOperator))
+def transformBinaryExpression(context: Context, expr: BinaryExpr): ast.BinaryExpression =
+  ast.BinaryExpression(
+    transformExpression(context, expr.getLeft),
+    transformExpression(context, expr.getRight),
+    transformOperator(expr.getOperator)
+  )
 
-def transformUnaryExpression(expr: UnaryExpr): ast.PrefixUnaryExpression =
-  ast.PrefixUnaryExpression(transformOperator(expr.getOperator).kind, transformExpression(expr.getExpression))
+def transformUnaryExpression(context: Context, expr: UnaryExpr): ast.PrefixUnaryExpression =
+  ast.PrefixUnaryExpression(
+    transformOperator(expr.getOperator).kind,
+    transformExpression(context, expr.getExpression)
+  )
 
-def transformObjectCreationExpression(expr: ObjectCreationExpr) =
+def transformObjectCreationExpression(context: Context, expr: ObjectCreationExpr) =
   ast.NewExpression(
     ast.Identifier(expr.getType.getName.getIdentifier),
-    transformArguments(expr.getArguments),
+    transformArguments(context, expr.getArguments),
     transformTypeArguments(expr.getTypeArguments)
   )
 
-def transformArguments(expressions: NodeList[Expression]) =
-  expressions.asScala.map(transformExpression).toList
+def transformArguments(context: Context, expressions: NodeList[Expression]) =
+  expressions.asScala.map(transformExpression.curried(context)).toList
 
-def transformDeclaratorToVariable(decl: VariableDeclarator): ast.VariableDeclaration =
+def transformDeclaratorToVariable(context: Context, decl: VariableDeclarator): ast.VariableDeclaration =
   ast.VariableDeclaration(
     transformName(decl.getName),
     transformType(decl.getType),
-    decl.getInitializer.toScala.map(transformExpression)
+    decl.getInitializer.toScala.map(transformExpression.curried(context))
   )
 
-def transformDeclaratorToProperty(decl: VariableDeclarator, modifiers: List[Modifier]): ast.PropertyDeclaration =
+def transformDeclaratorToProperty(context: Context, decl: VariableDeclarator, modifiers: List[Modifier]): ast.PropertyDeclaration =
   ast.PropertyDeclaration(
     transformName(decl.getName),
     transformType(decl.getType),
-    decl.getInitializer.toScala.map(transformExpression),
+    decl.getInitializer.toScala.map(transformExpression.curried(context)),
     modifiers.map(transformModifier)
   )
 
@@ -198,6 +319,9 @@ def transformType(aType: Type): ast.Type =
         case "Integer"|"Double" => ast.NumberKeyword()
         case other => ast.TypeReference(ast.Identifier(other), transformTypeArguments(aType.getTypeArguments))
     case aType: VoidType => ast.VoidKeyword()
+    case aType: ArrayType => ast.ArrayType(transformType(aType.getComponentType))
+    case aType: PrimitiveType =>
+      transformType(aType.toBoxedType)
     case _ => throw new Error("not supported")
 
 def transformTypeArguments(args: Optional[NodeList[Type]]): List[ast.Type] =
