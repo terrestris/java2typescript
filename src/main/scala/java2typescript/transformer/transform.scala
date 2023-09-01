@@ -11,7 +11,6 @@ import de.terrestris.java2typescript.ast
 import de.terrestris.java2typescript.util.resolveImportPath
 
 import java.util.Optional
-import scala.::
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
@@ -27,6 +26,7 @@ class Context(
           mem.getVariables.asScala.exists(v => v.getName == name)
         case mem: MethodDeclaration =>
           mem.getName == name
+        case _ => false
       )
   def isConstructor(name: SimpleName): Boolean =
     classOrInterface.getName == name
@@ -92,15 +92,51 @@ def transformClassOrInterfaceDeclaration(
 ): List[ast.ClassDeclaration|ast.InterfaceDeclaration] =
   val className = decl.getName.getIdentifier
   val context = Context(decl)
-  val memberVals = decl.getMembers.asScala.flatMap(transformMember.curried(context)).toList
+  val memberVals = decl.getMembers.asScala.flatMap(transformMember.curried(context))
+
   if (decl.isInterface)
-    ast.InterfaceDeclaration(transformName(decl.getName), members = memberVals, modifiers = additionalModifiers)
+    ast.InterfaceDeclaration(transformName(decl.getName), members = memberVals.toList, modifiers = additionalModifiers)
     ::
     context.internalClasses.toList
-  else
-    ast.ClassDeclaration(transformName(decl.getName), members = memberVals, modifiers = additionalModifiers)
+  else {
+    val properties = memberVals
+      .collect {
+        case p: ast.PropertyDeclaration => p
+      }
+      .toList
+
+    val constructors = memberVals
+      .collect {
+        case c: ast.Constructor => c
+      }
+      .toList
+
+    val constructorsWithOverloads =
+      if (constructors.length > 1)
+        createConstructorOverloads(constructors)
+      else
+        constructors
+
+    val methodsWithOverloads = groupMethodsByName(memberVals
+      .collect {
+        case m: ast.MethodDeclaration => m
+      }.toList)
+      .flatMap {
+        ms =>
+          if (ms.length > 1)
+            createMethodOverloads(ms)
+          else
+            ms
+      }
+
+    ast.ClassDeclaration(
+      transformName(decl.getName),
+      members = properties ::: constructorsWithOverloads ::: methodsWithOverloads,
+      modifiers = additionalModifiers
+    )
     ::
     context.internalClasses.toList
+  }
 
 def transformMember(context: Context, member: BodyDeclaration[?]): Option[ast.Member] =
   member match
