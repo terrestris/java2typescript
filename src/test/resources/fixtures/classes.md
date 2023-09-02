@@ -39,7 +39,7 @@ export class A {
 ## With constructor member
 ```java
 class A {
-    public void A(Double param) {
+    public A(Double param) {
         this.param = param;
     }
 }
@@ -120,20 +120,6 @@ export class A {
     public static getCenter(obstacles: Geometry, tolerance: number): Point {
         let lec: LargestEmptyCircle = new LargestEmptyCircle(obstacles, tolerance);
         return lec.getCenter();
-    }
-}
-```
-
-## constructor
-```java
-class A {
-    public A(Integer a, String b) {
-    }
-}
-```
-```typescript
-export class A {
-    public constructor(a: number, b: string) {
     }
 }
 ```
