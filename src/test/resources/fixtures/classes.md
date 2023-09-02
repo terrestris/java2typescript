@@ -39,7 +39,7 @@ export class A {
 ## With constructor member
 ```java
 class A {
-    public void A(Double param) {
+    public A(Double param) {
         this.param = param;
     }
 }

@@ -1,0 +1,4 @@
+Run example:
+```
+cat examples/file.json | node dist/index.mjs
+```

@@ -1,20 +1,7 @@
 {
   "name": "java2typescript",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "build": "rollup -c"
-  },
-  "author": "",
-  "license": "ISC",
+  "main": "src/index.mjs",
   "dependencies": {
-    "ts-morph": "^19.0.0",
-    "typescript": "^5.1.6"
-  },
-  "devDependencies": {
-    "@rollup/plugin-commonjs": "^25.0.3",
-    "@rollup/plugin-node-resolve": "^15.1.0",
-    "rollup": "^3.27.0"
+    "ts-morph": "^19.0.0"
   }
 }

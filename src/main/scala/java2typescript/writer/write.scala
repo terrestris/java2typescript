@@ -6,8 +6,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import de.terrestris.java2typescript.ast
 
-import java.io.{BufferedReader, BufferedWriter, File, InputStreamReader, OutputStreamWriter}
-import java.nio.charset.Charset
+import java.io.{BufferedWriter, OutputStreamWriter}
 import scala.io.Source
 
 def serialize(statements: List[ast.Node]) = {
@@ -24,7 +23,7 @@ def serialize(statements: List[ast.Node]) = {
 def write(statements: List[ast.Node]): String = {
   val serialized: String = serialize(statements)
 
-  val fileName = "src/main/javascript/dist/index.js"
+  val fileName = "src/main/javascript/src/index.mjs"
 
   val processBuilder = ProcessBuilder()
   processBuilder.redirectErrorStream(true)
@@ -40,5 +39,10 @@ def write(statements: List[ast.Node]): String = {
 
   process.waitFor()
 
-  Source.fromInputStream(process.getInputStream).mkString
+  val output = Source.fromInputStream(process.getInputStream).mkString
+
+  if (process.exitValue() != 0)
+    throw new Error(s"Error writing typescript AST.\n\n $serialized \n\n $output")
+
+  output
 }

@@ -35,13 +35,11 @@ def handleFile(source: Path, target: Path): Unit = {
   val parseResult = try
     parser.parse(javaContent)
   catch
-    case e: Error =>
-      throw new Error(s"Error parsing File: $target", e)
+    case e: Error => throw new Error(s"Error parsing java code from: $source", e)
   val tsContent = try
     writer.write(parseResult)
   catch
-    case e: Error =>
-      throw new Error(s"Error writing File: $target", e)
+    case e: Error => throw new Error(s"Error writing typescript code for: $source", e)
   val p = new java.io.PrintWriter(target.toFile)
   try
     p.write(tsContent)

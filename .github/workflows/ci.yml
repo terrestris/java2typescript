@@ -13,7 +13,7 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 18
-    
+
     - name: Setup Scala
       uses: olafurpg/setup-scala@v11
       with:
@@ -21,7 +21,7 @@ jobs:
 
     - name: Build typescript writer
       working-directory: ./src/main/javascript
-      run: npm install && npm run build
-    
+      run: npm install
+
     - name: run test
       run: sbt test

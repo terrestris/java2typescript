@@ -32,9 +32,9 @@ export class A {
 ## Constructor overloading
 ```java
 class A {
-    public void A(Integer a, String b) {
+    public A(Integer a, String b) {
     }
-    public void A(Boolean c) {
+    public A(Boolean c) {
     }
 }
 ```

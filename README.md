@@ -25,3 +25,10 @@ Run Tests for Test-Driven-Development
 ```shell
 sbt test
 ```
+
+Update TypeScript Version
+-------------------------
+
+* Install new version of `ts-morph` in `/src/main/javascript`.
+* Find enum `SyntaxKind` in `typescript.d.ts` (`node_modules/@ts-morph/common/lib/typescript.d.ts`)
+* Convert enum to scala in `java2typescript/ast/SyntaxKind.scala`
