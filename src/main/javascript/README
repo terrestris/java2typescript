@@ -1,4 +1,4 @@
 Run example:
 ```
-cat examples/file.json | node dist/index.mjs
+cat examples/file.json | node src/index.mjs
 ```

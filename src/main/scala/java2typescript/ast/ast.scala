@@ -196,6 +196,13 @@ case class PrefixUnaryExpression(
   val kind: SyntaxKind = SyntaxKind.PrefixUnaryExpression
 }
 
+case class PostfixUnaryExpression(
+  operator: Int,
+  operand: Expression
+) extends Expression {
+  val kind: SyntaxKind = SyntaxKind.PostfixUnaryExpression
+}
+
 case class VariableDeclarationList(
   declarations: List[VariableDeclaration],
   override val flags: Int = 1 // 1 = Let
@@ -245,17 +252,50 @@ case class IfStatement(
   val kind: SyntaxKind = SyntaxKind.IfStatement
 }
 
+//  case DoStatement extends SyntaxKind(245)
+
+case class WhileStatement(
+  expression: Expression,
+  statement: Statement
+) extends Statement {
+  val kind: SyntaxKind = SyntaxKind.WhileStatement
+}
+
+case class ForStatement(
+  initializer: Option[Expression],
+  condition: Option[Expression],
+  incrementor: Option[Expression],
+  statement: Statement
+) extends Statement {
+  val kind: SyntaxKind = SyntaxKind.ForStatement
+}
+
+//  case ForInStatement extends SyntaxKind(248)
+//  case ForOfStatement extends SyntaxKind(249)
+
+case class ContinueStatement() extends Statement {
+  val kind: SyntaxKind = SyntaxKind.ContinueStatement
+}
+
+case class BreakStatement() extends Statement {
+  val kind: SyntaxKind = SyntaxKind.BreakStatement
+}
+
 case class ReturnStatement(
   expression: Option[Expression]
 ) extends Statement {
   val kind: SyntaxKind = SyntaxKind.ReturnStatement
 }
 
+//  case SwitchStatement extends SyntaxKind(254)
+
 case class ThrowStatement(
   expression: Expression
 ) extends Statement {
   val kind: SyntaxKind = SyntaxKind.ThrowStatement
 }
+
+//  case TryStatement extends SyntaxKind(257)
 
 // Keyword
 
@@ -357,12 +397,28 @@ case class MinusToken() extends Token {
   val kind: SyntaxKind = SyntaxKind.MinusToken
 }
 
+case class AsteriskToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.AsteriskToken
+}
+
 case class SlashToken() extends Token {
   val kind: SyntaxKind = SyntaxKind.SlashToken
 }
 
-case class AsteriskToken() extends Token {
-  val kind: SyntaxKind = SyntaxKind.AsteriskToken
+case class PercentToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.PercentToken
+}
+
+case class PlusPlusToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.PlusPlusToken
+}
+
+case class MinusMinusToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.MinusMinusToken
+}
+
+case class ExclamationToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.ExclamationToken
 }
 
 case class AmpersandAmpersandToken() extends Token {
@@ -375,4 +431,12 @@ case class BarBarToken() extends Token {
 
 case class EqualsToken() extends Token {
   val kind: SyntaxKind = SyntaxKind.EqualsToken
+}
+
+case class PlusEqualsToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.PlusEqualsToken
+}
+
+case class MinusEqualsToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.MinusEqualsToken
 }

@@ -6,7 +6,7 @@ import com.github.javaparser.ast.`type`.{ArrayType, ClassOrInterfaceType, Primit
 import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, ConstructorDeclaration, FieldDeclaration, MethodDeclaration, Parameter, TypeDeclaration, VariableDeclarator}
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.expr.BinaryExpr.Operator
-import com.github.javaparser.ast.stmt.{BlockStmt, ExpressionStmt, IfStmt, ReturnStmt, Statement}
+import com.github.javaparser.ast.stmt.{BlockStmt, BreakStmt, ContinueStmt, ExpressionStmt, ForStmt, IfStmt, ReturnStmt, Statement, ThrowStmt, WhileStmt}
 import de.terrestris.java2typescript.ast
 import de.terrestris.java2typescript.util.resolveImportPath
 
@@ -77,7 +77,43 @@ def transformStatement(context: Context, stmt: Statement): ast.Statement =
     case stmt: ReturnStmt => ast.ReturnStatement(stmt.getExpression.toScala.map(transformExpression.curried(context)))
     case stmt: IfStmt => transformIfStatement(context, stmt)
     case stmt: BlockStmt => transformBlockStatement(context, stmt)
-    case _ => throw new Error("not supported")
+    case stmt: ThrowStmt => ast.ThrowStatement(transformExpression(context, stmt.getExpression))
+    case stmt: WhileStmt => ast.WhileStatement(
+      transformExpression(context, stmt.getCondition),
+      transformStatement(context, stmt.getBody)
+    )
+    case stmt: ForStmt => transformForStatment(context, stmt)
+    case stmt: BreakStmt => ast.BreakStatement()
+    case stmt: ContinueStmt => ast.ContinueStatement()
+    case _ => throw new Error("statement type not supported")
+
+def transformForStatment(context: Context, stmt: ForStmt) = {
+  val init = stmt.getInitialization.asScala
+  if (init.length > 1)
+    throw new Error("only one initializer for for loop supported")
+  val transformedInit =
+    if (init.nonEmpty)
+      if (!init.head.isInstanceOf[VariableDeclarationExpr])
+        throw new Error("only variable declaration expressions are supported in initializer")
+      else
+        Some(transformExpression(context, init.head))
+    else
+      None
+  val update = stmt.getUpdate.asScala
+  if (update.length > 1)
+    throw new Error("only one updater for for loop supported")
+  val transformedUpdate =
+    if (update.nonEmpty)
+      Some(transformExpression(context, update.head))
+    else
+      None
+  ast.ForStatement(
+    initializer = transformedInit,
+    condition = stmt.getCompare.toScala.map(transformExpression.curried(context)),
+    incrementor = transformedUpdate,
+    statement = transformStatement(context, stmt.getBody)
+  )
+}
 
 def transformIfStatement(context: Context, stmt: IfStmt) =
   ast.IfStatement(
@@ -251,11 +287,12 @@ def transformFieldAccessExpression(context: Context, expr: FieldAccessExpr) =
 def transformAssignExpression(context: Context, expr: AssignExpr) =
   ast.BinaryExpression(
     transformExpression(context, expr.getTarget),
-    transformExpression(context, expr.getValue), ast.EqualsToken()
+    transformExpression(context, expr.getValue),
+    transformOperator(s"${expr.getOperator.name}_EQUALS")
   )
 
-def transformOperator(op: BinaryExpr.Operator|UnaryExpr.Operator): ast.Token =
-  op.name match
+def transformOperator(name: String): ast.Token =
+  name match
     case "PLUS" => ast.PlusToken()
     case "MINUS" => ast.MinusToken()
     case "MULTIPLY" => ast.AsteriskToken()
@@ -263,25 +300,36 @@ def transformOperator(op: BinaryExpr.Operator|UnaryExpr.Operator): ast.Token =
     case "AND" => ast.AmpersandAmpersandToken()
     case "OR" => ast.BarBarToken()
     case "EQUALS" => ast.EqualsEqualsEqualsToken()
+    case "PLUS_EQUALS" => ast.PlusEqualsToken()
+    case "MINUS_EQUALS" => ast.MinusEqualsToken()
     case "NOT_EQUALS" => ast.ExclamationEqualsEqualsToken()
     case "LESS_EQUALS" => ast.LessThanEqualsToken()
     case "LESS" => ast.LessThanToken()
     case "GREATER" => ast.GreaterThanToken()
     case "GREATER_EQUALS" => ast.GreaterThanEqualsToken()
+    case "LOGICAL_COMPLEMENT" => ast.ExclamationToken()
+    case "POSTFIX_INCREMENT"|"PREFIX_INCREMENT" => ast.PlusPlusToken()
+    case "POSTFIX_DECREMENT"|"PREFIX_DECREMENT" => ast.MinusMinusToken()
     case _ => throw new Error("not supported")
 
 def transformBinaryExpression(context: Context, expr: BinaryExpr): ast.BinaryExpression =
   ast.BinaryExpression(
     transformExpression(context, expr.getLeft),
     transformExpression(context, expr.getRight),
-    transformOperator(expr.getOperator)
+    transformOperator(expr.getOperator.name)
   )
 
-def transformUnaryExpression(context: Context, expr: UnaryExpr): ast.PrefixUnaryExpression =
-  ast.PrefixUnaryExpression(
-    transformOperator(expr.getOperator).kind.kind,
-    transformExpression(context, expr.getExpression)
-  )
+def transformUnaryExpression(context: Context, expr: UnaryExpr): ast.PrefixUnaryExpression|ast.PostfixUnaryExpression =
+  if (expr.getOperator.isPrefix)
+    ast.PrefixUnaryExpression(
+      transformOperator(expr.getOperator.name).kind.kind,
+      transformExpression(context, expr.getExpression)
+    )
+  else
+    ast.PostfixUnaryExpression(
+      transformOperator(expr.getOperator.name).kind.kind,
+      transformExpression(context, expr.getExpression)
+    )
 
 def transformObjectCreationExpression(context: Context, expr: ObjectCreationExpr) =
   ast.NewExpression(
