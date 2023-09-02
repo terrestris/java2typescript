@@ -1,0 +1,17 @@
+{
+  "flags": 8,
+  "transformFlags": 1025,
+  "kind": 175,
+  "modifiers": [
+    {
+      "flags": 0,
+      "kind": 125
+    }
+  ],
+  "parameters": [],
+  "body": {
+    "flags": 0,
+    "kind": 240,
+    "statements": []
+  }
+}

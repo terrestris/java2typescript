@@ -123,3 +123,17 @@ export class A {
     }
 }
 ```
+
+## constructor
+```java
+class A {
+    public A(Integer a, String b) {
+    }
+}
+```
+```typescript
+export class A {
+    public constructor(a: number, b: string) {
+    }
+}
+```

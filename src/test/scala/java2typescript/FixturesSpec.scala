@@ -63,7 +63,7 @@ def getOptions(it: BufferedIterator[String]): Options = {
       case "debug" => options.debug = true
       case "methodBody" => options.methodBody = true
       case "skip" => options.skip = true
-      case s: String => throw new Error(s"unrecognized option $s")
+      case s: String => if (!s.isBlank) throw new Error(s"unrecognized option $s")
     }
   options
 }

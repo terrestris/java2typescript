@@ -3,7 +3,7 @@ package de.terrestris.java2typescript.transformer
 import com.github.javaparser.ast.Modifier.Keyword
 import com.github.javaparser.ast.{CompilationUnit, ImportDeclaration, Modifier, NodeList, PackageDeclaration}
 import com.github.javaparser.ast.`type`.{ArrayType, ClassOrInterfaceType, PrimitiveType, Type, VoidType}
-import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, FieldDeclaration, MethodDeclaration, Parameter, TypeDeclaration, VariableDeclarator}
+import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, ConstructorDeclaration, FieldDeclaration, MethodDeclaration, Parameter, TypeDeclaration, VariableDeclarator}
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.expr.BinaryExpr.Operator
 import com.github.javaparser.ast.stmt.{BlockStmt, ExpressionStmt, IfStmt, ReturnStmt, Statement}
@@ -147,32 +147,40 @@ def transformMember(context: Context, member: BodyDeclaration[?]): Option[ast.Me
       Some(transformDeclaratorToProperty(context, variables.head, member.getModifiers.asScala.toList))
     case member: MethodDeclaration =>
       Some(transformMethodDeclaration(context, member))
+    case member: ConstructorDeclaration
+      => Some(transformConstructorDeclaration(context, member))
     case member: ClassOrInterfaceDeclaration =>
       context.internalClasses.appendAll(transformClassOrInterfaceDeclaration(member))
       None
+
+def transformConstructorDeclaration(context: Context, declaration: ConstructorDeclaration) =
+  val methodBody = ast.Block(
+    declaration.getBody.getStatements.asScala.map(transformStatement.curried(context)).toList
+  )
+  val methodParameters = declaration.getParameters.asScala.map(transformParameter).toList
+  val methodModifiers = declaration.getModifiers.asScala.flatMap(transformModifier).toList
+
+  ast.Constructor(
+    parameters = methodParameters,
+    body = Some(methodBody),
+    modifiers = methodModifiers
+  )
 
 def transformMethodDeclaration(context: Context, decl: MethodDeclaration) =
   val methodBody = decl.getBody.toScala.map(body =>
     ast.Block(body.getStatements.asScala.map(transformStatement.curried(context)).toList)
   )
   val methodParameters = decl.getParameters.asScala.map(transformParameter).toList
-  val methodModifiers = decl.getModifiers.asScala.map(transformModifier).toList
+  val methodModifiers = decl.getModifiers.asScala.flatMap(transformModifier).toList
 
-  if (context.isConstructor(decl.getName))
-    ast.Constructor(
-      parameters = methodParameters,
-      body = methodBody,
-      modifiers = methodModifiers
-    )
-  else
-    ast.MethodDeclaration(
-      transformName(decl.getName),
-      `type` = transformType(decl.getType),
-      typeParameters = decl.getTypeParameters.asScala.map(transformType).toList,
-      parameters = methodParameters,
-      body = methodBody,
-      modifiers = methodModifiers
-    )
+  ast.MethodDeclaration(
+    transformName(decl.getName),
+    `type` = transformType(decl.getType),
+    typeParameters = decl.getTypeParameters.asScala.map(transformType).toList,
+    parameters = methodParameters,
+    body = methodBody,
+    modifiers = methodModifiers
+  )
 
 def transformParameter(param: Parameter) =
   ast.Parameter(transformName(param.getName), transformType(param.getType))
@@ -271,7 +279,7 @@ def transformBinaryExpression(context: Context, expr: BinaryExpr): ast.BinaryExp
 
 def transformUnaryExpression(context: Context, expr: UnaryExpr): ast.PrefixUnaryExpression =
   ast.PrefixUnaryExpression(
-    transformOperator(expr.getOperator).kind,
+    transformOperator(expr.getOperator).kind.kind,
     transformExpression(context, expr.getExpression)
   )
 
@@ -297,15 +305,16 @@ def transformDeclaratorToProperty(context: Context, decl: VariableDeclarator, mo
     transformName(decl.getName),
     transformType(decl.getType),
     decl.getInitializer.toScala.map(transformExpression.curried(context)),
-    modifiers.map(transformModifier)
+    modifiers.flatMap(transformModifier)
   )
 
-def transformModifier(modifier: Modifier): ast.Modifier =
+def transformModifier(modifier: Modifier): Option[ast.Modifier] =
   modifier.getKeyword match
-    case Keyword.PUBLIC => ast.PublicKeyword()
-    case Keyword.PROTECTED => ast.ProtectedKeyword()
-    case Keyword.PRIVATE => ast.PrivateKeyword()
-    case Keyword.STATIC => ast.StaticKeyword()
+    case Keyword.PUBLIC => Some(ast.PublicKeyword())
+    case Keyword.PROTECTED => Some(ast.ProtectedKeyword())
+    case Keyword.PRIVATE => Some(ast.PrivateKeyword())
+    case Keyword.STATIC => Some(ast.StaticKeyword())
+    case Keyword.FINAL => None
     case key => throw new Error(s"Modifier $key not supported")
 
 def transformName(name: SimpleName): ast.Identifier =
