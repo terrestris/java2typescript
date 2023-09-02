@@ -305,6 +305,7 @@ def transformModifier(modifier: Modifier): ast.Modifier =
     case Keyword.PUBLIC => ast.PublicKeyword()
     case Keyword.PROTECTED => ast.ProtectedKeyword()
     case Keyword.PRIVATE => ast.PrivateKeyword()
+    case Keyword.STATIC => ast.StaticKeyword()
     case key => throw new Error(s"Modifier $key not supported")
 
 def transformName(name: SimpleName): ast.Identifier =
@@ -338,4 +339,5 @@ def transformLiteral(expr: LiteralExpr): ast.Literal =
         ast.TrueKeyword()
       else
         ast.FalseKeyword()
+    case expr: NullLiteralExpr => ast.NullKeyword()
     case _ => throw new Error("not supported")

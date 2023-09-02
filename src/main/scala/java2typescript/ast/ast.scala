@@ -269,6 +269,10 @@ case class InstanceOfKeyword() extends Token {
   val kind = 104
 }
 
+case class NullKeyword() extends Literal {
+  val kind = 106
+}
+
 case class ThisKeyword() extends Expression {
   val kind = 110
 }
@@ -291,6 +295,10 @@ case class ProtectedKeyword() extends Modifier {
 
 case class PublicKeyword() extends Modifier {
   val kind = 125
+}
+
+case class StaticKeyword() extends Modifier {
+  val kind = 126
 }
 
 case class AnyKeyword() extends Type {

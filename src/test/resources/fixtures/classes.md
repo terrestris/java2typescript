@@ -105,3 +105,21 @@ export class A {
 class B {
 }
 ```
+
+## static methods
+```java
+class A {
+    public static Point getCenter(Geometry obstacles, double tolerance) {
+        LargestEmptyCircle lec = new LargestEmptyCircle(obstacles, tolerance);
+        return lec.getCenter();
+    }
+}
+```
+```typescript
+export class A {
+    public static getCenter(obstacles: Geometry, tolerance: number): Point {
+        let lec: LargestEmptyCircle = new LargestEmptyCircle(obstacles, tolerance);
+        return lec.getCenter();
+    }
+}
+```
