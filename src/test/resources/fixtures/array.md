@@ -16,3 +16,12 @@ Integer num = arr[0];
 ```typescript
 let num: number = arr[0];
 ```
+
+## Array brackets position
+options: methodBody
+```java
+Coordinate coordinate[] = new Coordinate[] {};
+```
+```typescript
+let coordinate: Coordinate[] = [];
+```
