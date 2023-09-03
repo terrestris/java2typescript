@@ -45,12 +45,12 @@ case class ClassDeclaration(
   modifiers: List[Modifier] = List()
 ) extends Statement {
   val kind: SyntaxKind = SyntaxKind.ClassDeclaration
-}
+}  
 
 case class VariableDeclaration(
   name: Identifier,
   `type`: Type,
-  initializer: Option[Expression]
+  initializer: Option[Expression] = None
 ) extends Node {
   val kind: SyntaxKind = SyntaxKind.VariableDeclaration
 }
@@ -127,6 +127,13 @@ case class Constructor(
 ) extends Member {
   val kind: SyntaxKind = SyntaxKind.Constructor
   override val flags: Int = 66048
+}
+
+case class CatchClause(
+  variableDeclaration: VariableDeclaration,
+  block: Block
+) extends Node {
+  val kind: SyntaxKind = SyntaxKind.CatchClause
 }
 
 // Expression
@@ -295,7 +302,13 @@ case class ThrowStatement(
   val kind: SyntaxKind = SyntaxKind.ThrowStatement
 }
 
-//  case TryStatement extends SyntaxKind(257)
+case class TryStatement(
+  tryBlock: Block,
+  catchClause: Option[CatchClause],
+  finallyBlock: Option[Block]
+) extends Statement {
+  val kind: SyntaxKind = SyntaxKind.TryStatement
+}
 
 // Keyword
 
