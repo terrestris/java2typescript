@@ -22,13 +22,25 @@ class Context(
   def addParameters(ps: List[ast.Parameter]): Context =
     Context(classOrInterface, internalClasses, parameters ::: ps)
 
-  def isMember(name: SimpleName): Boolean =
+  def isNonStaticMember(name: SimpleName): Boolean =
     classOrInterface.getMembers.asScala
       .exists {
         case mem: FieldDeclaration =>
-          mem.getVariables.asScala.exists(v => v.getName == name)
+          !mem.isStatic && mem.getVariables.asScala.exists(v => v.getName == name)
         case mem: MethodDeclaration =>
-          mem.getName == name
+          !mem.isStatic && mem.getName == name
+        case _ => false
+      }
+      &&
+      !parameters.exists(p => p.name.escapedText == name.getIdentifier)
+
+  def isStaticMember(name: SimpleName): Boolean =
+    classOrInterface.getMembers.asScala
+      .exists {
+        case mem: FieldDeclaration =>
+          mem.isStatic && mem.getVariables.asScala.exists(v => v.getName == name)
+        case mem: MethodDeclaration =>
+          mem.isStatic && mem.getName == name
         case _ => false
       }
       &&
@@ -46,9 +58,14 @@ def transformTypeDeclaration(decl: TypeDeclaration[?], modifiers: List[ast.Modif
     case _ => throw new Error("not supported")
 
 def transformNameInContext(context: Context, name: SimpleName) =
-  if (context.isMember(name))
+  if (context.isNonStaticMember(name))
     ast.PropertyAccessExpression(
       ast.ThisKeyword(),
+      transformName(name)
+    )
+  else if (context.isStaticMember(name))
+    ast.PropertyAccessExpression(
+      ast.Identifier(context.classOrInterface.getName.getIdentifier),
       transformName(name)
     )
   else

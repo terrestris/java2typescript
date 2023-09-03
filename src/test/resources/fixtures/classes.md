@@ -147,3 +147,27 @@ export class A {
     }
 }
 ```
+
+## static members
+```java
+class A {
+    final static Integer VAR = 2;
+    static Integer func() {
+        return 2;
+    }
+    Integer func2() {
+        return VAR + func();
+    }
+}
+```
+```typescript
+export class A {
+    static VAR: number = 2;
+    static func(): number {
+        return 2;
+    }
+    func2(): number {
+        return A.VAR + A.func();
+    }
+}
+```
