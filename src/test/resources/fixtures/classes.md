@@ -123,3 +123,27 @@ export class A {
     }
 }
 ```
+
+## parameters that have the same name as members
+```java
+class A {
+    Integer name;
+    Integer func(Integer name) {
+        return name;
+    }
+    Integer func2() {
+        return name;
+    }
+}
+```
+```typescript
+export class A {
+    name: number;
+    func(name: number): number {
+        return name;
+    }
+    func2(): number {
+        return this.name;
+    }
+}
+```
