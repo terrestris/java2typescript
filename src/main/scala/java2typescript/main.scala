@@ -8,18 +8,22 @@ import java.nio.file.{Files, Path, Paths}
 import scala.io.Source
 
 @main def main(configFile: String): Unit = {
-  val mapper = JsonMapper.builder()
-    .addModule(DefaultScalaModule)
-    .build()
-
   val configPath = Paths.get(configFile).toAbsolutePath.normalize
-
-  val config = mapper.readValue(readFile(configPath.toFile), classOf[Config])
+  
+  val config = parseConfig(readFile(configPath.toFile))
 
   val sourcePath = configPath.getParent.resolve(config.source)
   val targetPath = configPath.getParent.resolve(config.target)
 
-  walkDirectory(sourcePath, targetPath)
+  walkDirectory(config, sourcePath, targetPath)
+}
+
+def parseConfig(config: String): Config = {
+  val mapper = JsonMapper.builder()
+    .addModule(DefaultScalaModule)
+    .build()
+  
+  mapper.readValue(config, classOf[Config])
 }
 
 def readFile(file: File): String = {
@@ -29,11 +33,11 @@ def readFile(file: File): String = {
   content
 }
 
-def handleFile(source: Path, target: Path): Unit = {
+def handleFile(config: Config, source: Path, target: Path): Unit = {
   target.getParent.toFile.mkdirs()
   val javaContent = readFile(source.toFile)
   val parseResult = try
-    parser.parse(javaContent)
+    parser.parse(config, javaContent)
   catch
     case e: Error => throw new Error(s"Error parsing java code from: $source", e)
   val tsContent = try
@@ -47,13 +51,13 @@ def handleFile(source: Path, target: Path): Unit = {
     p.close()
 }
 
-def walkDirectory(source: Path, target: Path): Unit = {
+def walkDirectory(config: Config, source: Path, target: Path): Unit = {
   Files.newDirectoryStream(source)
     .forEach(sourceFile => {
       val targetFile = target.resolve(source.relativize(sourceFile))
       if (sourceFile.toFile.isDirectory)
-        walkDirectory(sourceFile, targetFile)
+        walkDirectory(config, sourceFile, targetFile)
       else
-        handleFile(sourceFile, targetFile)
+        handleFile(config, sourceFile, targetFile)
     })
 }

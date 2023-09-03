@@ -35,3 +35,22 @@ CustomType<String> c = new CustomType<>(123, "abc");
 ```typescript
 let c: CustomType<string> = new CustomType(123, "abc");
 ```
+
+## increment, decrement
+options: methodBody
+```java
+i++;
+i--;
+++i;
+--i;
+i += 1;
+i -= 2;
+```
+```typescript
+i++;
+i--;
+++i;
+--i;
+i += 1;
+i -= 2;
+```
