@@ -22,4 +22,7 @@ def transformOperator(name: String): ast.Token =
     case "LOGICAL_COMPLEMENT" => ast.ExclamationToken()
     case "POSTFIX_INCREMENT"|"PREFIX_INCREMENT" => ast.PlusPlusToken()
     case "POSTFIX_DECREMENT"|"PREFIX_DECREMENT" => ast.MinusMinusToken()
+    case "UNSIGNED_RIGHT_SHIFT" => ast.GreaterThanGreaterThanGreaterThanEqualsToken()
+    case "XOR" => ast.CaretToken()
+    case "REMAINDER" => ast.PercentToken()
     case _ => throw new Error("not supported")

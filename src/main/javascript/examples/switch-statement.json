@@ -1,0 +1,15 @@
+{
+  "flags": 0,
+  "kind": 254,
+  "expression": {
+    "flags": 0,
+    "kind": 80,
+    "escapedText": "num"
+  },
+  "caseBlock": {
+    "flags": 0,
+    "kind": 254,
+    "clauses": []
+  },
+  "possiblyExhaustive": false
+}

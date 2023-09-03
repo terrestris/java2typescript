@@ -1,7 +1,7 @@
 package de.terrestris.java2typescript.transformer
 
 import com.github.javaparser.ast.expr.{ObjectCreationExpr, VariableDeclarationExpr}
-import com.github.javaparser.ast.stmt.{BlockStmt, BreakStmt, CatchClause, ContinueStmt, ExplicitConstructorInvocationStmt, ExpressionStmt, ForStmt, IfStmt, ReturnStmt, Statement, ThrowStmt, TryStmt, WhileStmt}
+import com.github.javaparser.ast.stmt.{BlockStmt, BreakStmt, CatchClause, ContinueStmt, ExplicitConstructorInvocationStmt, ExpressionStmt, ForStmt, IfStmt, ReturnStmt, Statement, SwitchEntry, SwitchStmt, ThrowStmt, TryStmt, WhileStmt}
 import de.terrestris.java2typescript.ast
 
 import scala.jdk.CollectionConverters.*
@@ -33,6 +33,24 @@ def transformStatement(context: Context, stmt: Statement): ast.Statement =
     case stmt: ExplicitConstructorInvocationStmt => ast.ExpressionStatement(
       ast.CallExpression(
         ast.SuperKeyword()
+      )
+    )
+    case stmt: SwitchStmt => ast.SwitchStatement(
+      transformExpression(context, stmt.getSelector),
+      ast.CaseBlock(
+        stmt.getEntries.asScala.toList.map(entry =>
+          val labels = entry.getLabels.asScala
+          val statements = entry.getStatements.asScala.map(transformStatement.curried(context)).toList
+          if (labels.nonEmpty)
+            if (labels.length > 1)
+              throw new Error("more than one label not supported for switch statement")
+            ast.CaseClause(
+              transformExpression(context, labels.head),
+              statements
+            )
+          else
+            ast.DefaultClause(statements)
+        )
       )
     )
     case _ => throw new Error("statement type not supported")

@@ -80,3 +80,23 @@ String text = (String) someVar;
 ```typescript
 let text: string = someVar as string;
 ```
+
+## conditional expression
+options: methodBody
+```java
+Integer val = condition
+    ? var1
+    : var2;
+```
+```typescript
+let val: number = condition ? var1 : var2;
+```
+
+## instanceof
+options: methodBody
+```java
+Boolean x = a instanceof B;
+```
+```typescript
+let x: boolean = a instanceof B;
+```

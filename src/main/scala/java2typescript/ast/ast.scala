@@ -1,5 +1,7 @@
 package de.terrestris.java2typescript.ast
 
+import de.terrestris.java2typescript.ast.SyntaxKind.ColonToken
+
 trait Node {
   val kind: SyntaxKind
   val `flags`: Int = 0
@@ -112,6 +114,25 @@ case class ArrayType(
   val kind: SyntaxKind = SyntaxKind.ArrayType
 }
 
+case class CaseBlock(
+  clauses: List[CaseClause|DefaultClause]
+) extends Node {
+  val kind: SyntaxKind = SyntaxKind.CaseBlock
+}
+
+case class CaseClause(
+  expression: Expression,
+  statements: List[Statement]
+) extends Node {
+  val kind: SyntaxKind = SyntaxKind.CaseClause
+}
+
+case class DefaultClause(
+  statements: List[Statement]
+) extends Node {
+  val kind: SyntaxKind = SyntaxKind.DefaultClause
+}
+
 // Members
 
 case class PropertyDeclaration(
@@ -217,6 +238,16 @@ case class BinaryExpression(
   val kind: SyntaxKind = SyntaxKind.BinaryExpression
 }
 
+case class ConditionalExpression(
+  condition: Expression,
+  whenTrue: Expression,
+  whenFalse: Expression,
+) extends Expression {
+  val questionToken: QuestionToken = QuestionToken()
+  val colonToken: ColonToken = ColonToken()
+  val kind: SyntaxKind = SyntaxKind.ConditionalExpression
+}
+
 case class ExpressionWithTypeArguments(
   expression: Expression,
   typeArguments: List[Type] = List()
@@ -315,7 +346,12 @@ case class ReturnStatement(
   val kind: SyntaxKind = SyntaxKind.ReturnStatement
 }
 
-//  case SwitchStatement extends SyntaxKind(254)
+case class SwitchStatement(
+  expression: Expression,
+  caseBlock: CaseBlock
+) extends Statement {
+  val kind: SyntaxKind = SyntaxKind.SwitchStatement
+}
 
 case class ThrowStatement(
   expression: Expression
@@ -475,6 +511,14 @@ case class BarBarToken() extends Token {
   val kind: SyntaxKind = SyntaxKind.BarBarToken
 }
 
+case class QuestionToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.QuestionToken
+}
+
+case class ColonToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.ColonToken
+}
+
 case class EqualsToken() extends Token {
   val kind: SyntaxKind = SyntaxKind.EqualsToken
 }
@@ -485,4 +529,12 @@ case class PlusEqualsToken() extends Token {
 
 case class MinusEqualsToken() extends Token {
   val kind: SyntaxKind = SyntaxKind.MinusEqualsToken
+}
+
+case class GreaterThanGreaterThanGreaterThanEqualsToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken
+}
+
+case class CaretToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.CaretToken
 }

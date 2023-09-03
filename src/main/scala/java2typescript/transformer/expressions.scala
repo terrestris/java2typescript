@@ -1,9 +1,10 @@
 package de.terrestris.java2typescript.transformer
 
 import com.github.javaparser.ast.NodeList
-import com.github.javaparser.ast.expr.{ArrayAccessExpr, ArrayCreationExpr, AssignExpr, BinaryExpr, CastExpr, EnclosedExpr, Expression, FieldAccessExpr, LiteralExpr, MethodCallExpr, NameExpr, ObjectCreationExpr, SuperExpr, ThisExpr, UnaryExpr, VariableDeclarationExpr}
+import com.github.javaparser.ast.`type`.{ClassOrInterfaceType, Type}
+import com.github.javaparser.ast.expr.{ArrayAccessExpr, ArrayCreationExpr, AssignExpr, BinaryExpr, CastExpr, ConditionalExpr, EnclosedExpr, Expression, FieldAccessExpr, InstanceOfExpr, LiteralExpr, MethodCallExpr, NameExpr, ObjectCreationExpr, SuperExpr, ThisExpr, UnaryExpr, VariableDeclarationExpr}
 import de.terrestris.java2typescript.ast
-import de.terrestris.java2typescript.ast.SyntaxKind
+import de.terrestris.java2typescript.ast.{ConditionalExpression, SyntaxKind}
 
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
@@ -28,7 +29,21 @@ def transformExpression(context: Context, expr: Expression): ast.Expression =
     case expr: ArrayAccessExpr => transformArrayAccessExpression(context, expr)
     case expr: CastExpr => transformCastExpression(context, expr)
     case expr: SuperExpr => ast.SuperKeyword()
+    case expr: ConditionalExpr => transformConditionalExpression(context, expr)
+    case expr: InstanceOfExpr => ast.BinaryExpression(
+      transformExpression(context, expr.getExpression),
+      transformName(expr.getType.asInstanceOf[ClassOrInterfaceType].getName),
+      ast.InstanceOfKeyword()
+    )
     case _ => throw new Error("not supported")
+
+def transformConditionalExpression(context: Context, expr: ConditionalExpr) = {
+  ast.ConditionalExpression(
+    transformExpression(context, expr.getCondition),
+    transformExpression(context, expr.getThenExpr),
+    transformExpression(context, expr.getElseExpr)
+  )
+}
 
 def transformCastExpression(context: Context, expr: CastExpr) =
   val `type` = transformType(expr.getType)
@@ -55,7 +70,9 @@ def transformArrayAccessExpression(context: Context, expr: ArrayAccessExpr) =
 
 def transformArrayCreationExpression(context: Context, expr: ArrayCreationExpr) =
   ast.ArrayLiteralExpression(
-    expr.getInitializer.orElseThrow().getValues.asScala.map(transformExpression.curried(context)).toList
+    expr.getInitializer.toScala.toList
+      .flatMap(ie => ie.getValues.asScala)
+      .map(transformExpression.curried(context))
   )
 
 def transformMethodCall(context: Context, expr: MethodCallExpr) =

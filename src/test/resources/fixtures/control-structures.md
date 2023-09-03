@@ -88,3 +88,31 @@ for (let i: number = start;; i += inc) {
     }
 }
 ```
+
+## switch
+options: methodBody
+```java
+switch(num) {
+    case 1:
+        func();
+        break;
+    case 2:
+    case 3:
+        func2();
+        break;
+    default:
+        func3();
+}
+```
+```typescript
+switch (num) {
+    case 1:
+        func();
+        break;
+    case 2:
+    case 3:
+        func2();
+        break;
+    default: func3();
+}
+```

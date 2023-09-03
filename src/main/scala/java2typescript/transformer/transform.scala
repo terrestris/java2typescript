@@ -127,4 +127,5 @@ def transformLiteral(expr: LiteralExpr): ast.Literal =
       else
         ast.FalseKeyword()
     case expr: NullLiteralExpr => ast.NullKeyword()
+    case expr: CharLiteralExpr => ast.StringLiteral(expr.toString)
     case _ => throw new Error("not supported")

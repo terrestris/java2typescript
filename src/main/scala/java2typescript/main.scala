@@ -9,7 +9,7 @@ import scala.io.Source
 
 @main def main(configFile: String): Unit = {
   val configPath = Paths.get(configFile).toAbsolutePath.normalize
-  
+
   val config = parseConfig(readFile(configPath.toFile))
 
   val sourcePath = configPath.getParent.resolve(config.source)
@@ -22,7 +22,7 @@ def parseConfig(config: String): Config = {
   val mapper = JsonMapper.builder()
     .addModule(DefaultScalaModule)
     .build()
-  
+
   mapper.readValue(config, classOf[Config])
 }
 
@@ -34,6 +34,7 @@ def readFile(file: File): String = {
 }
 
 def handleFile(config: Config, source: Path, target: Path): Unit = {
+  println(source.toFile)
   target.getParent.toFile.mkdirs()
   val javaContent = readFile(source.toFile)
   val parseResult = try
