@@ -5,9 +5,9 @@ import com.github.javaparser.ast.{CompilationUnit, ImportDeclaration, Modifier, 
 import com.github.javaparser.ast.`type`.{ArrayType, ClassOrInterfaceType, PrimitiveType, Type, VoidType}
 import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, ConstructorDeclaration, FieldDeclaration, MethodDeclaration, Parameter, TypeDeclaration, VariableDeclarator}
 import com.github.javaparser.ast.expr.*
-import com.github.javaparser.ast.expr.BinaryExpr.Operator
 import com.github.javaparser.ast.stmt.{BlockStmt, BreakStmt, ContinueStmt, ExpressionStmt, ForStmt, IfStmt, ReturnStmt, Statement, ThrowStmt, WhileStmt}
-import de.terrestris.java2typescript.ast
+import de.terrestris.java2typescript.{Config, ast}
+import de.terrestris.java2typescript.ast.SyntaxKind
 import de.terrestris.java2typescript.util.resolveImportPath
 
 import java.util.Optional
@@ -28,34 +28,55 @@ class Context(
           mem.getName == name
         case _ => false
       )
-  def isConstructor(name: SimpleName): Boolean =
-    classOrInterface.getName == name
 }
 
-def transformCompilationUnit(cu: CompilationUnit): List[ast.Node] =
-  cu.getImports.asScala.map(i => transformImport(cu.getPackageDeclaration, i)).toList
+def transformCompilationUnit(config: Config, cu: CompilationUnit): List[ast.Node] =
+  cu.getImports.asScala.map(i => transformImport(config, cu.getPackageDeclaration, i)).toList
   :::
   cu.getTypes.asScala.flatMap(t => transformTypeDeclaration(t, List(ast.ExportKeyword()))).toList
 
-def transformImport(pack: Optional[PackageDeclaration], importDeclaration: ImportDeclaration) = {
-  val packagePath = pack.map(p => p.getName.toString.split("\\.")).orElse(Array[String]())
-  val importPath = importDeclaration.getName.getQualifier.map(q => q.toString.split("\\.")).orElse(Array[String]())
-  val resolvedPath = resolveImportPath(packagePath, importPath)
+def transformImport(config: Config, pack: Optional[PackageDeclaration], importDeclaration: ImportDeclaration) = {
+  val importName = importDeclaration.getName.toString
   val identifier = importDeclaration.getName.getIdentifier
-  ast.ImportDeclaration(
-    ast.ImportClause(
-      ast.NamedImports(
-        List(
-          ast.ImportSpecifier(
-            ast.Identifier(identifier)
+  config.imports
+    .flatMap {
+      _.find(loc => loc.`class` == importName)
+    }
+    .map {
+      importConfig =>
+        ast.ImportDeclaration(
+          ast.ImportClause(
+            ast.NamedImports(
+              List(
+                ast.ImportSpecifier(
+                  ast.Identifier(identifier)
+                )
+              )
+            )
+          ),
+          ast.StringLiteral(importConfig.location)
+        )
+    }
+    .getOrElse {
+      val packagePath = pack.map(p => p.getName.toString.split("\\.")).orElse(Array[String]())
+      val importPath = importDeclaration.getName.getQualifier.map(q => q.toString.split("\\.")).orElse(Array[String]())
+      val resolvedPath = resolveImportPath(packagePath, importPath)
+      
+      ast.ImportDeclaration(
+        ast.ImportClause(
+          ast.NamedImports(
+            List(
+              ast.ImportSpecifier(
+                ast.Identifier(identifier)
+              )
+            )
           )
+        ),
+        ast.StringLiteral(
+          s"$resolvedPath/$identifier.ts"
         )
       )
-    ),
-    ast.StringLiteral(
-      s"$resolvedPath/$identifier.ts"
-    )
-  )
+    }
 }
 
 def transformTypeDeclaration(decl: TypeDeclaration[?], modifiers: List[ast.Modifier] = List()) =
@@ -239,7 +260,23 @@ def transformExpression(context: Context, expr: Expression): ast.Expression =
     case expr: MethodCallExpr => transformMethodCall(context, expr)
     case expr: ArrayCreationExpr => transformArrayCreationExpression(context, expr)
     case expr: ArrayAccessExpr => transformArrayAccessExpression(context, expr)
+    case expr: CastExpr => transformCastExpression(context, expr)
     case _ => throw new Error("not supported")
+
+def transformCastExpression(context: Context, expr: CastExpr) = {
+  val `type` = transformType(expr.getType)
+  val castExpression = transformExpression(context, expr.getExpression)
+  if (`type`.kind == SyntaxKind.NumberKeyword)
+    ast.CallExpression(
+      ast.PropertyAccessExpression(
+        ast.Identifier("Math"),
+        ast.Identifier("floor")
+      ),
+      List(castExpression)
+    )
+  else
+    throw new Error("not supported")
+}
 
 def transformArrayAccessExpression(context: Context, expr: ArrayAccessExpr) =
   ast.ElementAccessExpression(
@@ -288,11 +325,15 @@ def transformAssignExpression(context: Context, expr: AssignExpr) =
   ast.BinaryExpression(
     transformExpression(context, expr.getTarget),
     transformExpression(context, expr.getValue),
-    transformOperator(s"${expr.getOperator.name}_EQUALS")
+    if (expr.getOperator.name == "ASSIGN")
+      transformOperator("ASSIGN")
+    else
+      transformOperator(s"${expr.getOperator.name}_EQUALS")
   )
 
 def transformOperator(name: String): ast.Token =
   name match
+    case "ASSIGN" => ast.EqualsToken()
     case "PLUS" => ast.PlusToken()
     case "MINUS" => ast.MinusToken()
     case "MULTIPLY" => ast.AsteriskToken()

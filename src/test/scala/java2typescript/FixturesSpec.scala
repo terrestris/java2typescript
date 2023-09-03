@@ -22,7 +22,8 @@ class Fixture(
   val title: String,
   val javaCode: String,
   val typeScriptCode: String,
-  val options: Options
+  val options: Options,
+  val config: Option[Config]
 )
 
 class FixtureCollection(
@@ -34,8 +35,10 @@ def dropWhile(it: BufferedIterator[String], condition: String => Boolean): Unit 
   while (condition(it.head))
     it.next()
 
-def getCodeBlock(it: BufferedIterator[String], syntax: String): String = {
-  dropWhile(it, l => !l.startsWith(s"```$syntax"))
+def getCodeBlock(it: BufferedIterator[String], syntax: String): Option[String] = {
+  dropWhile(it, l => l.isEmpty)
+  if (!it.head.startsWith(s"```$syntax"))
+    return None
   it.next()
   val codeLines = ListBuffer[String]()
   var line = it.next()
@@ -43,7 +46,7 @@ def getCodeBlock(it: BufferedIterator[String], syntax: String): String = {
     codeLines.append(line)
     line = it.next()
   }
-  codeLines.mkString("\n") + "\n"
+  Some(codeLines.mkString("\n") + "\n")
 }
 
 def getPrefixed(it: BufferedIterator[String], prefix: String): String = {
@@ -71,9 +74,10 @@ def getOptions(it: BufferedIterator[String]): Options = {
 def getFixture(it: BufferedIterator[String]): Fixture = {
   val title = getPrefixed(it, "## ")
   val options = getOptions(it)
-  val javaCode = getCodeBlock(it, "java")
-  val typescriptCode = getCodeBlock(it, "typescript")
-  Fixture(title, javaCode, typescriptCode, options)
+  val config = getCodeBlock(it, "json").map(parseConfig)
+  val javaCode = getCodeBlock(it, "java").get
+  val typescriptCode = getCodeBlock(it, "typescript").get
+  Fixture(title, javaCode, typescriptCode, options, config)
 }
 
 def getFixtureCollection(it: BufferedIterator[String]): FixtureCollection = {
@@ -119,7 +123,7 @@ class FixturesSpec extends AnyFunSpec with Matchers {
               val parsed = if (fix.options.methodBody)
                 parseMethodBody(wrapStatementJava(fix.javaCode))
               else
-                parse(fix.javaCode)
+                parse(fix.config.getOrElse(Config()), fix.javaCode)
 
               val written = write(parsed)
               written should be(fix.typeScriptCode)
