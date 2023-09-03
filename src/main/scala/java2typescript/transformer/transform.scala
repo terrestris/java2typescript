@@ -13,14 +13,14 @@ import scala.jdk.OptionConverters.*
 
 class Context(
   val classOrInterface: ClassOrInterfaceDeclaration,
-  val internalClasses: List[ast.ClassDeclaration|ast.InterfaceDeclaration] = List(),
+  val extractedStatements: List[ast.Statement] = List(),
   val parameters: List[ast.Parameter] = List()
 ) {
-  def addInternalClasses(cs: List[ast.ClassDeclaration | ast.InterfaceDeclaration]): Context =
-    Context(classOrInterface, internalClasses ::: cs, parameters)
+  def addExtractedStatements(sts: List[ast.Statement]): Context =
+    Context(classOrInterface, extractedStatements ::: sts, parameters)
 
   def addParameters(ps: List[ast.Parameter]): Context =
-    Context(classOrInterface, internalClasses, parameters ::: ps)
+    Context(classOrInterface, extractedStatements, parameters ::: ps)
 
   def isNonStaticMember(name: SimpleName): Boolean =
     classOrInterface.getMembers.asScala

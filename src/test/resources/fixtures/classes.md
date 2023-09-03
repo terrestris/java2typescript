@@ -204,3 +204,23 @@ class A implements B, C<D> {
 export class A implements B, C<D> {
 }
 ```
+
+## static initializer
+```java
+class GeometryOverlay {
+    static String OVERLAY_PROPERTY_NAME = "test";
+    static {
+        setOverlayImpl(System.getProperty(OVERLAY_PROPERTY_NAME));
+    }
+    static void setOverlayImpl(String overlayImplCode) {
+    }
+}
+```
+```typescript
+export class GeometryOverlay {
+    static OVERLAY_PROPERTY_NAME: string = "test";
+    static setOverlayImpl(overlayImplCode: string): void {
+    }
+}
+GeometryOverlay.setOverlayImpl(System.getProperty(GeometryOverlay.OVERLAY_PROPERTY_NAME));
+```

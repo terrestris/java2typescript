@@ -116,3 +116,16 @@ switch (num) {
     default: func3();
 }
 ```
+
+## for each
+options: methodBody
+```java
+for (Geometry hole : holesFixed) {
+    holes.add(hole);
+}
+```
+```typescript
+for (let hole: Geometry of holesFixed) {
+    holes.add(hole);
+}
+```

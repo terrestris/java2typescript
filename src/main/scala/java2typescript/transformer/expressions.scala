@@ -9,12 +9,10 @@ import de.terrestris.java2typescript.ast.{ConditionalExpression, SyntaxKind}
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
+
 def transformExpression(context: Context, expr: Expression): ast.Expression =
   expr match
-    case expr: VariableDeclarationExpr =>
-      ast.VariableDeclarationList(
-        expr.getVariables.asScala.map(transformDeclaratorToVariable.curried(context)).toList
-      )
+    case expr: VariableDeclarationExpr => transformVariableDeclarationExpression(context, expr)
     case expr: LiteralExpr => transformLiteral(expr)
     case expr: ObjectCreationExpr => transformObjectCreationExpression(context, expr)
     case expr: BinaryExpr => transformBinaryExpression(context, expr)
@@ -36,6 +34,12 @@ def transformExpression(context: Context, expr: Expression): ast.Expression =
       ast.InstanceOfKeyword()
     )
     case _ => throw new Error("not supported")
+    
+def transformVariableDeclarationExpression(context: Context, expr: VariableDeclarationExpr) = {
+  ast.VariableDeclarationList(
+    expr.getVariables.asScala.map(transformDeclaratorToVariable.curried(context)).toList
+  )
+}
 
 def transformConditionalExpression(context: Context, expr: ConditionalExpr) = {
   ast.ConditionalExpression(

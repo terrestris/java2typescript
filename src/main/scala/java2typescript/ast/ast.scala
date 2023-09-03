@@ -329,8 +329,13 @@ case class ForStatement(
   val kind: SyntaxKind = SyntaxKind.ForStatement
 }
 
-//  case ForInStatement extends SyntaxKind(248)
-//  case ForOfStatement extends SyntaxKind(249)
+case class ForOfStatement(
+  initializer: VariableDeclarationList,
+  expression: Expression,
+  statement: Statement
+) extends Statement {
+  val kind: SyntaxKind = SyntaxKind.ForOfStatement
+}
 
 case class ContinueStatement() extends Statement {
   val kind: SyntaxKind = SyntaxKind.ContinueStatement
