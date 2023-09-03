@@ -1,7 +1,6 @@
-package de.terrestris
-package java2typescript
+package de.terrestris.java2typescript
 
-import java2typescript.util.resolveImportPath
+import transformer.resolveImportPath
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
