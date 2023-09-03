@@ -1,32 +1,50 @@
 package de.terrestris.java2typescript.transformer
 
 import com.github.javaparser.ast.Modifier.Keyword
-import com.github.javaparser.ast.{CompilationUnit, ImportDeclaration, Modifier, NodeList, PackageDeclaration}
-import com.github.javaparser.ast.`type`.{ArrayType, ClassOrInterfaceType, PrimitiveType, Type, VoidType}
-import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, ConstructorDeclaration, FieldDeclaration, MethodDeclaration, Parameter, TypeDeclaration, VariableDeclarator}
+import com.github.javaparser.ast.`type`.*
+import com.github.javaparser.ast.body.*
 import com.github.javaparser.ast.expr.*
-import com.github.javaparser.ast.stmt.{BlockStmt, BreakStmt, ContinueStmt, ExpressionStmt, ForStmt, IfStmt, ReturnStmt, Statement, ThrowStmt, WhileStmt}
+import com.github.javaparser.ast.{CompilationUnit, Modifier, NodeList}
 import de.terrestris.java2typescript.{Config, ast}
-import de.terrestris.java2typescript.ast.SyntaxKind
 
 import java.util.Optional
-import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
 class Context(
-  val classOrInterface: ClassOrInterfaceDeclaration
+  val classOrInterface: ClassOrInterfaceDeclaration,
+  val internalClasses: List[ast.ClassDeclaration|ast.InterfaceDeclaration] = List(),
+  val parameters: List[ast.Parameter] = List()
 ) {
-  val internalClasses: mutable.Buffer[ast.ClassDeclaration|ast.InterfaceDeclaration] = mutable.Buffer()
-  def isMember(name: SimpleName): Boolean =
+  def addInternalClasses(cs: List[ast.ClassDeclaration | ast.InterfaceDeclaration]): Context =
+    Context(classOrInterface, internalClasses ::: cs, parameters)
+
+  def addParameters(ps: List[ast.Parameter]): Context =
+    Context(classOrInterface, internalClasses, parameters ::: ps)
+
+  def isNonStaticMember(name: SimpleName): Boolean =
     classOrInterface.getMembers.asScala
-      .exists(mem => mem match
+      .exists {
         case mem: FieldDeclaration =>
-          mem.getVariables.asScala.exists(v => v.getName == name)
+          !mem.isStatic && mem.getVariables.asScala.exists(v => v.getName == name)
         case mem: MethodDeclaration =>
-          mem.getName == name
+          !mem.isStatic && mem.getName == name
         case _ => false
-      )
+      }
+      &&
+      !parameters.exists(p => p.name.escapedText == name.getIdentifier)
+
+  def isStaticMember(name: SimpleName): Boolean =
+    classOrInterface.getMembers.asScala
+      .exists {
+        case mem: FieldDeclaration =>
+          mem.isStatic && mem.getVariables.asScala.exists(v => v.getName == name)
+        case mem: MethodDeclaration =>
+          mem.isStatic && mem.getName == name
+        case _ => false
+      }
+      &&
+      !parameters.exists(p => p.name.escapedText == name.getIdentifier)
 }
 
 def transformCompilationUnit(config: Config, cu: CompilationUnit): List[ast.Node] =
@@ -40,9 +58,14 @@ def transformTypeDeclaration(decl: TypeDeclaration[?], modifiers: List[ast.Modif
     case _ => throw new Error("not supported")
 
 def transformNameInContext(context: Context, name: SimpleName) =
-  if (context.isMember(name))
+  if (context.isNonStaticMember(name))
     ast.PropertyAccessExpression(
       ast.ThisKeyword(),
+      transformName(name)
+    )
+  else if (context.isStaticMember(name))
+    ast.PropertyAccessExpression(
+      ast.Identifier(context.classOrInterface.getName.getIdentifier),
       transformName(name)
     )
   else

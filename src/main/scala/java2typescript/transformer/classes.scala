@@ -12,12 +12,26 @@ def transformClassOrInterfaceDeclaration(
 ): List[ast.ClassDeclaration|ast.InterfaceDeclaration] =
   val className = decl.getName.getIdentifier
   val context = Context(decl)
-  val memberVals = decl.getMembers.asScala.flatMap(transformMember.curried(context))
+  val contextsAndMembers = decl.getMembers.asScala
+    .map(transformMember.curried(context))
+
+  val memberVals = contextsAndMembers.collect {
+    case Right(ms) => ms
+  }
+
+  val internalClasses = contextsAndMembers
+    .collect {
+      case Left(c) => c.internalClasses
+    }
+    .flatMap {
+      ics => ics
+    }
+    .toList
 
   if (decl.isInterface)
     ast.InterfaceDeclaration(transformName(decl.getName), members = memberVals.toList, modifiers = additionalModifiers)
       ::
-      context.internalClasses.toList
+      internalClasses
   else {
     val properties = memberVals
       .collect {
@@ -55,29 +69,29 @@ def transformClassOrInterfaceDeclaration(
       modifiers = additionalModifiers
     )
       ::
-      context.internalClasses.toList
+      internalClasses
   }
 
-def transformMember(context: Context, member: BodyDeclaration[?]): Option[ast.Member] =
+def transformMember(context: Context, member: BodyDeclaration[?]): Either[Context, ast.Member] =
   member match
     case member: FieldDeclaration =>
       val variables = member.getVariables.asScala.toList
       if (variables.length != 1)
         throw new Error(s"amount of variables in member not supported (${variables.length})")
-      Some(transformDeclaratorToProperty(context, variables.head, member.getModifiers.asScala.toList))
+      Right(transformDeclaratorToProperty(context, variables.head, member.getModifiers.asScala.toList))
     case member: MethodDeclaration =>
-      Some(transformMethodDeclaration(context, member))
-    case member: ConstructorDeclaration
-    => Some(transformConstructorDeclaration(context, member))
+      Right(transformMethodDeclaration(context, member))
+    case member: ConstructorDeclaration =>
+      Right(transformConstructorDeclaration(context, member))
     case member: ClassOrInterfaceDeclaration =>
-      context.internalClasses.appendAll(transformClassOrInterfaceDeclaration(member))
-      None
+      Left(context.addInternalClasses(transformClassOrInterfaceDeclaration(member)))
 
 def transformConstructorDeclaration(context: Context, declaration: ConstructorDeclaration) =
-  val methodBody = ast.Block(
-    declaration.getBody.getStatements.asScala.map(transformStatement.curried(context)).toList
-  )
   val methodParameters = declaration.getParameters.asScala.map(transformParameter).toList
+  val methodContext = context.addParameters(methodParameters)
+  val methodBody = ast.Block(
+    declaration.getBody.getStatements.asScala.map(transformStatement.curried(methodContext)).toList
+  )
   val methodModifiers = declaration.getModifiers.asScala.flatMap(transformModifier).toList
 
   ast.Constructor(
@@ -87,10 +101,11 @@ def transformConstructorDeclaration(context: Context, declaration: ConstructorDe
   )
 
 def transformMethodDeclaration(context: Context, decl: MethodDeclaration) =
-  val methodBody = decl.getBody.toScala.map(body =>
-    ast.Block(body.getStatements.asScala.map(transformStatement.curried(context)).toList)
-  )
   val methodParameters = decl.getParameters.asScala.map(transformParameter).toList
+  val methodContext = context.addParameters(methodParameters)
+  val methodBody = decl.getBody.toScala.map(body =>
+    ast.Block(body.getStatements.asScala.map(transformStatement.curried(methodContext)).toList)
+  )
   val methodModifiers = decl.getModifiers.asScala.flatMap(transformModifier).toList
 
   ast.MethodDeclaration(
