@@ -72,18 +72,19 @@ def transformThrowStatement(context: Context, stmt: ThrowStmt): ast.ThrowStateme
       val args = err.getArguments.asScala
       if (args.length != 1)
         throw new Error("more then one error argument not supported")
-      val arg = args.head
-      if (!arg.isStringLiteralExpr)
-        throw new Error("Non string arguments for errors are not supported")
-      val text = arg.toStringLiteralExpr.get.asString
 
       ast.ThrowStatement(
         ast.NewExpression(
           ast.Identifier("Error"),
-          List(ast.StringLiteral(s"$name: $text")
+          List(
+            ast.BinaryExpression(
+              ast.StringLiteral(s"$name: "),
+              transformExpression(context, args.head),
+              ast.PlusToken()
+            )
+          )
         )
       )
-    )
     case _ => throw new Error("throw type not supported")
 
 def transformForStatment(context: Context, stmt: ForStmt) = {

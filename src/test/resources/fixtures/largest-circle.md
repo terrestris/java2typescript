@@ -1,7 +1,5 @@
 # Largest Empty Circle
 ## whole class
-options: debug
-
 ```json
 {
   "imports": [
@@ -448,7 +446,7 @@ export class LargestEmptyCircle {
     private radiusPoint: Point = null;
     public constructor(obstacles: Geometry, tolerance: number) {
         if (obstacles.isEmpty()) {
-            throw new Error("IllegalArgumentException: Empty obstacles geometry is not supported");
+            throw new Error("IllegalArgumentException: " + "Empty obstacles geometry is not supported");
         }
         this.obstacles = obstacles;
         this.factory = obstacles.getFactory();

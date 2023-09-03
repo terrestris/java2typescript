@@ -119,7 +119,7 @@ def transformLiteral(expr: LiteralExpr): ast.Literal =
   expr match
     case expr: StringLiteralExpr =>
       ast.StringLiteral(expr.getValue)
-    case expr: (IntegerLiteralExpr|DoubleLiteralExpr) =>
+    case expr: (IntegerLiteralExpr|DoubleLiteralExpr|LongLiteralExpr) =>
       ast.NumericLiteral(expr.getValue)
     case expr: BooleanLiteralExpr =>
       if (expr.getValue)

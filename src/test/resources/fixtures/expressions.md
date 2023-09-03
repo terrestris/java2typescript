@@ -71,3 +71,12 @@ Boolean x = true && false || true != true == false;
 ```typescript
 let x: boolean = true && false || true !== true === false;
 ```
+
+## cast expression
+options: methodBody
+```java
+String text = (String) someVar;
+```
+```typescript
+let text: string = someVar as string;
+```

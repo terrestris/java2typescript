@@ -224,6 +224,13 @@ case class ExpressionWithTypeArguments(
   val kind: SyntaxKind = SyntaxKind.ExpressionWithTypeArguments
 }
 
+case class AsExpression(
+  expression: Expression,
+  `type`: Type
+) extends Expression {
+  val kind: SyntaxKind = SyntaxKind.AsExpression
+}
+
 case class VariableDeclarationList(
   declarations: List[VariableDeclaration],
   override val flags: Int = 1 // 1 = Let

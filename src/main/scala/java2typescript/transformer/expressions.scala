@@ -30,7 +30,7 @@ def transformExpression(context: Context, expr: Expression): ast.Expression =
     case expr: SuperExpr => ast.SuperKeyword()
     case _ => throw new Error("not supported")
 
-def transformCastExpression(context: Context, expr: CastExpr) = {
+def transformCastExpression(context: Context, expr: CastExpr) =
   val `type` = transformType(expr.getType)
   val castExpression = transformExpression(context, expr.getExpression)
   if (`type`.kind == SyntaxKind.NumberKeyword)
@@ -42,8 +42,10 @@ def transformCastExpression(context: Context, expr: CastExpr) = {
       List(castExpression)
     )
   else
-    throw new Error("not supported")
-}
+    ast.AsExpression(
+      castExpression,
+      `type`
+    )
 
 def transformArrayAccessExpression(context: Context, expr: ArrayAccessExpr) =
   ast.ElementAccessExpression(

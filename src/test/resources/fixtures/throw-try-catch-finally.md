@@ -13,7 +13,7 @@ options: methodBody
 throw new IllegalArgumentException("test");
 ```
 ```typescript
-throw new Error("IllegalArgumentException: test");
+throw new Error("IllegalArgumentException: " + "test");
 ```
 
 ## try catch finally
