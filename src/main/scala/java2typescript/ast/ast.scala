@@ -40,12 +40,12 @@ case class TypeReference(
 case class ClassDeclaration(
   name: Identifier,
   typeParameters: List[Type] = List(),
-  heritageClauses: List[Type] = List(),
+  heritageClauses: List[HeritageClause] = List(),
   members: List[Member] = List(),
   modifiers: List[Modifier] = List()
 ) extends Statement {
   val kind: SyntaxKind = SyntaxKind.ClassDeclaration
-}  
+}
 
 case class VariableDeclaration(
   name: Identifier,
@@ -58,7 +58,7 @@ case class VariableDeclaration(
 case class InterfaceDeclaration(
   name: Identifier,
   typeParameters: List[Type] = List(),
-  heritageClauses: List[Type] = List(),
+  heritageClauses: List[HeritageClause] = List(),
   members: List[Member] = List(),
   modifiers: List[Modifier] = List()
 ) extends Statement {
@@ -77,6 +77,20 @@ case class ImportClause(
 ) extends Node {
   val kind: SyntaxKind = SyntaxKind.ImportClause
   val isTypeOnly = false
+}
+
+case class HeritageClause(
+  types: List[ExpressionWithTypeArguments],
+  token: SyntaxKind
+) extends Node {
+  val kind: SyntaxKind = SyntaxKind.HeritageClause
+}
+
+case class CatchClause(
+  variableDeclaration: VariableDeclaration,
+  block: Block
+) extends Node {
+  val kind: SyntaxKind = SyntaxKind.CatchClause
 }
 
 case class NamedImports(
@@ -127,13 +141,6 @@ case class Constructor(
 ) extends Member {
   val kind: SyntaxKind = SyntaxKind.Constructor
   override val flags: Int = 66048
-}
-
-case class CatchClause(
-  variableDeclaration: VariableDeclaration,
-  block: Block
-) extends Node {
-  val kind: SyntaxKind = SyntaxKind.CatchClause
 }
 
 // Expression
@@ -188,6 +195,20 @@ case class TypeOfExpression(
   val kind: SyntaxKind = SyntaxKind.TypeOfExpression
 }
 
+case class PrefixUnaryExpression(
+  operator: SyntaxKind,
+  operand: Expression
+) extends Expression {
+  val kind: SyntaxKind = SyntaxKind.PrefixUnaryExpression
+}
+
+case class PostfixUnaryExpression(
+  operator: SyntaxKind,
+  operand: Expression
+) extends Expression {
+  val kind: SyntaxKind = SyntaxKind.PostfixUnaryExpression
+}
+
 case class BinaryExpression(
   left: Expression,
   right: Expression,
@@ -196,18 +217,11 @@ case class BinaryExpression(
   val kind: SyntaxKind = SyntaxKind.BinaryExpression
 }
 
-case class PrefixUnaryExpression(
-  operator: Int,
-  operand: Expression
+case class ExpressionWithTypeArguments(
+  expression: Expression,
+  typeArguments: List[Type] = List()
 ) extends Expression {
-  val kind: SyntaxKind = SyntaxKind.PrefixUnaryExpression
-}
-
-case class PostfixUnaryExpression(
-  operator: Int,
-  operand: Expression
-) extends Expression {
-  val kind: SyntaxKind = SyntaxKind.PostfixUnaryExpression
+  val kind: SyntaxKind = SyntaxKind.ExpressionWithTypeArguments
 }
 
 case class VariableDeclarationList(
@@ -316,6 +330,10 @@ case class ExportKeyword() extends Modifier {
   val kind: SyntaxKind = SyntaxKind.ExportKeyword
 }
 
+case class ExtendsKeyword() extends Token {
+  val kind: SyntaxKind = SyntaxKind.ExtendsKeyword
+}
+
 case class FalseKeyword() extends Literal {
   val kind: SyntaxKind = SyntaxKind.FalseKeyword
 }
@@ -328,6 +346,10 @@ case class NullKeyword() extends Literal {
   val kind: SyntaxKind = SyntaxKind.NullKeyword
 }
 
+case class SuperKeyword() extends Expression {
+  val kind: SyntaxKind = SyntaxKind.SuperKeyword
+}
+
 case class ThisKeyword() extends Expression {
   val kind: SyntaxKind = SyntaxKind.ThisKeyword
 }
@@ -338,6 +360,10 @@ case class TrueKeyword() extends Literal {
 
 case class VoidKeyword() extends Type {
   val kind: SyntaxKind = SyntaxKind.VoidKeyword
+}
+
+case class ImplementsKeyword() extends Token {
+  val kind: SyntaxKind = SyntaxKind.ImplementsKeyword
 }
 
 case class PrivateKeyword() extends Modifier {

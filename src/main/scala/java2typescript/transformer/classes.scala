@@ -1,10 +1,33 @@
 package de.terrestris.java2typescript.transformer
 
+import com.github.javaparser.ast.NodeList
+import com.github.javaparser.ast.`type`.ClassOrInterfaceType
 import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, ConstructorDeclaration, FieldDeclaration, MethodDeclaration, Parameter}
 import de.terrestris.java2typescript.ast
+import de.terrestris.java2typescript.ast.SyntaxKind
 
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
+
+def transformHeritage(nodes: NodeList[ClassOrInterfaceType], token: SyntaxKind): Option[ast.HeritageClause] =
+  val implementedTypes = nodes.asScala.toList
+  if (implementedTypes.nonEmpty)
+    Some(
+      ast.HeritageClause(
+        implementedTypes.map {
+          t =>
+            ast.ExpressionWithTypeArguments(
+              transformName(t.getName),
+              t.getTypeArguments.toScala.toList
+                .flatMap(nl => nl.asScala.toList)
+                .map(transformType)
+            )
+        },
+        token
+      )
+    )
+  else
+    None
 
 def transformClassOrInterfaceDeclaration(
   decl: ClassOrInterfaceDeclaration,
@@ -29,7 +52,13 @@ def transformClassOrInterfaceDeclaration(
     .toList
 
   if (decl.isInterface)
-    ast.InterfaceDeclaration(transformName(decl.getName), members = memberVals.toList, modifiers = additionalModifiers)
+    ast.InterfaceDeclaration(
+      transformName(decl.getName),
+      members = memberVals.toList,
+      modifiers = additionalModifiers,
+      heritageClauses = transformHeritage(decl.getExtendedTypes, SyntaxKind.ExtendsKeyword).toList
+        ::: transformHeritage(decl.getImplementedTypes, SyntaxKind.ImplementsKeyword).toList
+    )
       ::
       internalClasses
   else {
@@ -66,7 +95,9 @@ def transformClassOrInterfaceDeclaration(
     ast.ClassDeclaration(
       transformName(decl.getName),
       members = properties ::: constructorsWithOverloads ::: methodsWithOverloads,
-      modifiers = additionalModifiers
+      modifiers = additionalModifiers,
+      heritageClauses = transformHeritage(decl.getExtendedTypes, SyntaxKind.ExtendsKeyword).toList
+        ::: transformHeritage(decl.getImplementedTypes, SyntaxKind.ImplementsKeyword).toList
     )
       ::
       internalClasses

@@ -171,3 +171,36 @@ export class A {
     }
 }
 ```
+
+## inheritance
+```java
+class A extends B<C> {
+    public A() {
+        super();
+    }
+    public void method() {
+        super.method();
+    }
+}
+```
+```typescript
+export class A extends B<C> {
+    public constructor() {
+        super();
+    }
+    public method(): void {
+        super.method();
+    }
+}
+```
+
+## implementing interface
+```java
+class A implements B, C<D> {
+    
+}
+```
+```typescript
+export class A implements B, C<D> {
+}
+```

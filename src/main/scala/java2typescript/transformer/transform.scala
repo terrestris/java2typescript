@@ -113,7 +113,7 @@ def transformType(aType: Type): ast.Type =
     case _ => throw new Error("not supported")
 
 def transformTypeArguments(args: Optional[NodeList[Type]]): List[ast.Type] =
-  args.map(o => o.asScala.map(transformType).toList).orElse(List[ast.Type]())
+  args.toScala.map(o => o.asScala.map(transformType)).toList.flatten
 
 def transformLiteral(expr: LiteralExpr): ast.Literal =
   expr match

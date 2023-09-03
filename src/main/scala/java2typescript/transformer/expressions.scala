@@ -1,7 +1,7 @@
 package de.terrestris.java2typescript.transformer
 
 import com.github.javaparser.ast.NodeList
-import com.github.javaparser.ast.expr.{ArrayAccessExpr, ArrayCreationExpr, AssignExpr, BinaryExpr, CastExpr, EnclosedExpr, Expression, FieldAccessExpr, LiteralExpr, MethodCallExpr, NameExpr, ObjectCreationExpr, ThisExpr, UnaryExpr, VariableDeclarationExpr}
+import com.github.javaparser.ast.expr.{ArrayAccessExpr, ArrayCreationExpr, AssignExpr, BinaryExpr, CastExpr, EnclosedExpr, Expression, FieldAccessExpr, LiteralExpr, MethodCallExpr, NameExpr, ObjectCreationExpr, SuperExpr, ThisExpr, UnaryExpr, VariableDeclarationExpr}
 import de.terrestris.java2typescript.ast
 import de.terrestris.java2typescript.ast.SyntaxKind
 
@@ -27,6 +27,7 @@ def transformExpression(context: Context, expr: Expression): ast.Expression =
     case expr: ArrayCreationExpr => transformArrayCreationExpression(context, expr)
     case expr: ArrayAccessExpr => transformArrayAccessExpression(context, expr)
     case expr: CastExpr => transformCastExpression(context, expr)
+    case expr: SuperExpr => ast.SuperKeyword()
     case _ => throw new Error("not supported")
 
 def transformCastExpression(context: Context, expr: CastExpr) = {
@@ -82,12 +83,12 @@ def transformBinaryExpression(context: Context, expr: BinaryExpr): ast.BinaryExp
 def transformUnaryExpression(context: Context, expr: UnaryExpr): ast.PrefixUnaryExpression|ast.PostfixUnaryExpression =
   if (expr.getOperator.isPrefix)
     ast.PrefixUnaryExpression(
-      transformOperator(expr.getOperator.name).kind.kind,
+      transformOperator(expr.getOperator.name).kind,
       transformExpression(context, expr.getExpression)
     )
   else
     ast.PostfixUnaryExpression(
-      transformOperator(expr.getOperator.name).kind.kind,
+      transformOperator(expr.getOperator.name).kind,
       transformExpression(context, expr.getExpression)
     )
 
