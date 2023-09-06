@@ -224,3 +224,34 @@ export class GeometryOverlay {
 }
 GeometryOverlay.setOverlayImpl(System.getProperty(GeometryOverlay.OVERLAY_PROPERTY_NAME));
 ```
+
+## abstract class
+```java
+abstract class A {
+    abstract Integer func();
+    Integer func2() {
+        return func();
+    }
+}
+```
+```typescript
+export abstract class A {
+    abstract func(): number;
+    func2(): number {
+        return this.func();
+    }
+}
+```
+
+## multiple members
+```java
+class A {
+    private double m00, m01;
+}
+```
+```typescript
+export class A {
+    private m00: number;
+    private m01: number;
+}
+```

@@ -2,13 +2,12 @@ package de.terrestris.java2typescript.transformer
 
 import com.github.javaparser.ast.NodeList
 import com.github.javaparser.ast.`type`.{ClassOrInterfaceType, Type}
-import com.github.javaparser.ast.expr.{ArrayAccessExpr, ArrayCreationExpr, AssignExpr, BinaryExpr, CastExpr, ConditionalExpr, EnclosedExpr, Expression, FieldAccessExpr, InstanceOfExpr, LiteralExpr, MethodCallExpr, NameExpr, ObjectCreationExpr, SuperExpr, ThisExpr, UnaryExpr, VariableDeclarationExpr}
+import com.github.javaparser.ast.expr.{ArrayAccessExpr, ArrayCreationExpr, ArrayInitializerExpr, AssignExpr, BinaryExpr, CastExpr, ConditionalExpr, EnclosedExpr, Expression, FieldAccessExpr, InstanceOfExpr, LiteralExpr, MethodCallExpr, NameExpr, ObjectCreationExpr, SuperExpr, ThisExpr, UnaryExpr, VariableDeclarationExpr}
 import de.terrestris.java2typescript.ast
 import de.terrestris.java2typescript.ast.{ConditionalExpression, SyntaxKind}
 
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
-
 
 def transformExpression(context: Context, expr: Expression): ast.Expression =
   expr match
@@ -33,21 +32,25 @@ def transformExpression(context: Context, expr: Expression): ast.Expression =
       transformName(expr.getType.asInstanceOf[ClassOrInterfaceType].getName),
       ast.InstanceOfKeyword()
     )
+    case expr: ArrayInitializerExpr => ast.ArrayLiteralExpression(
+      expr.getValues
+        .asScala
+        .map(transformExpression.curried(context))
+        .toList
+    )
     case _ => throw new Error("not supported")
-    
-def transformVariableDeclarationExpression(context: Context, expr: VariableDeclarationExpr) = {
+
+def transformVariableDeclarationExpression(context: Context, expr: VariableDeclarationExpr) =
   ast.VariableDeclarationList(
     expr.getVariables.asScala.map(transformDeclaratorToVariable.curried(context)).toList
   )
-}
 
-def transformConditionalExpression(context: Context, expr: ConditionalExpr) = {
+def transformConditionalExpression(context: Context, expr: ConditionalExpr) =
   ast.ConditionalExpression(
     transformExpression(context, expr.getCondition),
     transformExpression(context, expr.getThenExpr),
     transformExpression(context, expr.getElseExpr)
   )
-}
 
 def transformCastExpression(context: Context, expr: CastExpr) =
   val `type` = transformType(expr.getType)

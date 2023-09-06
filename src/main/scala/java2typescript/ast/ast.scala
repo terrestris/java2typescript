@@ -1,7 +1,5 @@
 package de.terrestris.java2typescript.ast
 
-import de.terrestris.java2typescript.ast.SyntaxKind.ColonToken
-
 trait Node {
   val kind: SyntaxKind
   val `flags`: Int = 0
@@ -311,7 +309,12 @@ case class IfStatement(
   val kind: SyntaxKind = SyntaxKind.IfStatement
 }
 
-//  case DoStatement extends SyntaxKind(245)
+case class DoStatement(
+  statement: Statement,
+  expression: Expression
+) extends Statement {
+  val kind: SyntaxKind = SyntaxKind.DoStatement
+}
 
 case class WhileStatement(
   expression: Expression,
@@ -372,6 +375,10 @@ case class TryStatement(
   val kind: SyntaxKind = SyntaxKind.TryStatement
 }
 
+case class EmptyStatement() extends Statement {
+  val kind: SyntaxKind = SyntaxKind.EmptyStatement
+}
+
 // Keyword
 
 case class ExportKeyword() extends Modifier {
@@ -428,6 +435,10 @@ case class PublicKeyword() extends Modifier {
 
 case class StaticKeyword() extends Modifier {
   val kind: SyntaxKind = SyntaxKind.StaticKeyword
+}
+
+case class AbstractKeyword() extends Modifier {
+  val kind: SyntaxKind = SyntaxKind.AbstractKeyword
 }
 
 case class AnyKeyword() extends Type {
@@ -496,12 +507,32 @@ case class PercentToken() extends Token {
   val kind: SyntaxKind = SyntaxKind.PercentToken
 }
 
+case class AmpersandToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.AmpersandToken
+}
+
+case class BarToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.BarToken
+}
+
 case class PlusPlusToken() extends Token {
   val kind: SyntaxKind = SyntaxKind.PlusPlusToken
 }
 
 case class MinusMinusToken() extends Token {
   val kind: SyntaxKind = SyntaxKind.MinusMinusToken
+}
+
+case class LessThanLessThanToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.LessThanLessThanToken
+}
+
+case class GreaterThanGreaterThanToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.GreaterThanGreaterThanToken
+}
+
+case class GreaterThanGreaterThanGreaterThanToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.GreaterThanGreaterThanGreaterThanToken
 }
 
 case class ExclamationToken() extends Token {
@@ -536,10 +567,26 @@ case class MinusEqualsToken() extends Token {
   val kind: SyntaxKind = SyntaxKind.MinusEqualsToken
 }
 
+case class SlashEqualsToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.SlashEqualsToken
+}
+
 case class GreaterThanGreaterThanGreaterThanEqualsToken() extends Token {
   val kind: SyntaxKind = SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken
 }
 
 case class CaretToken() extends Token {
   val kind: SyntaxKind = SyntaxKind.CaretToken
+}
+
+case class AmpersandEqualsToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.AmpersandEqualsToken
+}
+
+case class BarEqualsToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.BarEqualsToken
+}
+
+case class CaretEqualsToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.CaretEqualsToken
 }

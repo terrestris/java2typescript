@@ -31,18 +31,19 @@ def transformHeritage(nodes: NodeList[ClassOrInterfaceType], token: SyntaxKind):
 
 def transformClassOrInterfaceDeclaration(
   decl: ClassOrInterfaceDeclaration,
-  additionalModifiers: List[ast.Modifier] = List()
+  additionalModifiers: List[ast.Modifier] = List(),
+  dropModifiers: Boolean = false
 ): List[ast.Statement] =
   val className = decl.getName.getIdentifier
   val context = Context(decl)
   val contextsAndMembers = decl.getMembers.asScala
     .map(transformMember.curried(context))
 
-  val memberVals = contextsAndMembers.collect {
+  val membersVal = contextsAndMembers.collect {
     case Right(ms) => ms
-  }
+  }.flatten
 
-  val extractedStatments = contextsAndMembers
+  val extractedStatements = contextsAndMembers
     .collect {
       case Left(c) => c.extractedStatements
     }
@@ -51,24 +52,35 @@ def transformClassOrInterfaceDeclaration(
     }
     .toList
 
+  val modifiersVal = (additionalModifiers ::: decl.getModifiers.asScala.toList.flatMap(transformModifier)).filter {
+    m =>
+      !List(
+        SyntaxKind.PublicKeyword,
+        SyntaxKind.ProtectedKeyword,
+        SyntaxKind.PrivateKeyword,
+        SyntaxKind.DefaultKeyword,
+        SyntaxKind.StaticKeyword
+      ).contains(m.kind)
+  }
+
   if (decl.isInterface)
     ast.InterfaceDeclaration(
       transformName(decl.getName),
-      members = memberVals.toList,
-      modifiers = additionalModifiers,
+      members = membersVal.toList,
+      modifiers = modifiersVal,
       heritageClauses = transformHeritage(decl.getExtendedTypes, SyntaxKind.ExtendsKeyword).toList
         ::: transformHeritage(decl.getImplementedTypes, SyntaxKind.ImplementsKeyword).toList
     )
       ::
-      extractedStatments
+      extractedStatements
   else {
-    val properties = memberVals
+    val properties = membersVal
       .collect {
         case p: ast.PropertyDeclaration => p
       }
       .toList
 
-    val constructors = memberVals
+    val constructors = membersVal
       .collect {
         case c: ast.Constructor => c
       }
@@ -80,7 +92,7 @@ def transformClassOrInterfaceDeclaration(
       else
         constructors
 
-    val methodsWithOverloads = groupMethodsByName(memberVals
+    val methodsWithOverloads = groupMethodsByName(membersVal
       .collect {
         case m: ast.MethodDeclaration => m
       }.toList)
@@ -95,25 +107,26 @@ def transformClassOrInterfaceDeclaration(
     ast.ClassDeclaration(
       transformName(decl.getName),
       members = properties ::: constructorsWithOverloads ::: methodsWithOverloads,
-      modifiers = additionalModifiers,
+      modifiers = modifiersVal,
       heritageClauses = transformHeritage(decl.getExtendedTypes, SyntaxKind.ExtendsKeyword).toList
         ::: transformHeritage(decl.getImplementedTypes, SyntaxKind.ImplementsKeyword).toList
     )
       ::
-      extractedStatments
+      extractedStatements
   }
 
-def transformMember(context: Context, member: BodyDeclaration[?]): Either[Context, ast.Member] =
+def transformMember(context: Context, member: BodyDeclaration[?]): Either[Context, List[ast.Member]] =
   member match
     case member: FieldDeclaration =>
-      val variables = member.getVariables.asScala.toList
-      if (variables.length != 1)
-        throw new Error(s"amount of variables in member not supported (${variables.length})")
-      Right(transformDeclaratorToProperty(context, variables.head, member.getModifiers.asScala.toList))
+      Right(
+        member.getVariables.asScala.toList.map(declarator =>
+          transformDeclaratorToProperty(context, declarator, member.getModifiers.asScala.toList)
+        )
+      )
     case member: MethodDeclaration =>
-      Right(transformMethodDeclaration(context, member))
+      Right(List(transformMethodDeclaration(context, member)))
     case member: ConstructorDeclaration =>
-      Right(transformConstructorDeclaration(context, member))
+      Right(List(transformConstructorDeclaration(context, member)))
     case member: ClassOrInterfaceDeclaration =>
       Left(context.addExtractedStatements(transformClassOrInterfaceDeclaration(member)))
     case member: InitializerDeclaration =>

@@ -3,9 +3,11 @@
 options: methodBody
 ```java
 Coordinate[] coordinates = new Coordinate[] { centerPt.copy(), radiusPt.copy() };
+Coordinate[] coords = { new Coordinate(), new Coordinate() };
 ```
 ```typescript
 let coordinates: Coordinate[] = [centerPt.copy(), radiusPt.copy()];
+let coords: Coordinate[] = [new Coordinate(), new Coordinate()];
 ```
 
 ## Array accessor

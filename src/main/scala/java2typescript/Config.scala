@@ -6,8 +6,15 @@ case class ImportLocation(
   location: String
 )
 
+case class ReplacementConfig(
+  pattern: String,
+  replacement: String
+)
+
 case class Config(
   source: String = "",
   target: String = "",
-  imports: Option[List[ImportLocation]] = None
+  imports: Option[List[ImportLocation]] = None,
+  replacements: List[ReplacementConfig] = List(),
+  skipFiles: List[String] = List()
 )
