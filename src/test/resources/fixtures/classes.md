@@ -171,3 +171,56 @@ export class A {
     }
 }
 ```
+
+## inheritance
+```java
+class A extends B<C> {
+    public A() {
+        super();
+    }
+    public void method() {
+        super.method();
+    }
+}
+```
+```typescript
+export class A extends B<C> {
+    public constructor() {
+        super();
+    }
+    public method(): void {
+        super.method();
+    }
+}
+```
+
+## implementing interface
+```java
+class A implements B, C<D> {
+    
+}
+```
+```typescript
+export class A implements B, C<D> {
+}
+```
+
+## static initializer
+```java
+class GeometryOverlay {
+    static String OVERLAY_PROPERTY_NAME = "test";
+    static {
+        setOverlayImpl(System.getProperty(OVERLAY_PROPERTY_NAME));
+    }
+    static void setOverlayImpl(String overlayImplCode) {
+    }
+}
+```
+```typescript
+export class GeometryOverlay {
+    static OVERLAY_PROPERTY_NAME: string = "test";
+    static setOverlayImpl(overlayImplCode: string): void {
+    }
+}
+GeometryOverlay.setOverlayImpl(System.getProperty(GeometryOverlay.OVERLAY_PROPERTY_NAME));
+```

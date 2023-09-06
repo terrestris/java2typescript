@@ -88,3 +88,44 @@ for (let i: number = start;; i += inc) {
     }
 }
 ```
+
+## switch
+options: methodBody
+```java
+switch(num) {
+    case 1:
+        func();
+        break;
+    case 2:
+    case 3:
+        func2();
+        break;
+    default:
+        func3();
+}
+```
+```typescript
+switch (num) {
+    case 1:
+        func();
+        break;
+    case 2:
+    case 3:
+        func2();
+        break;
+    default: func3();
+}
+```
+
+## for each
+options: methodBody
+```java
+for (Geometry hole : holesFixed) {
+    holes.add(hole);
+}
+```
+```typescript
+for (let hole: Geometry of holesFixed) {
+    holes.add(hole);
+}
+```

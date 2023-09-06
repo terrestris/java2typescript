@@ -1,19 +1,18 @@
 package de.terrestris.java2typescript.transformer
 
 import com.github.javaparser.ast.NodeList
-import com.github.javaparser.ast.expr.{ArrayAccessExpr, ArrayCreationExpr, AssignExpr, BinaryExpr, CastExpr, EnclosedExpr, Expression, FieldAccessExpr, LiteralExpr, MethodCallExpr, NameExpr, ObjectCreationExpr, ThisExpr, UnaryExpr, VariableDeclarationExpr}
+import com.github.javaparser.ast.`type`.{ClassOrInterfaceType, Type}
+import com.github.javaparser.ast.expr.{ArrayAccessExpr, ArrayCreationExpr, AssignExpr, BinaryExpr, CastExpr, ConditionalExpr, EnclosedExpr, Expression, FieldAccessExpr, InstanceOfExpr, LiteralExpr, MethodCallExpr, NameExpr, ObjectCreationExpr, SuperExpr, ThisExpr, UnaryExpr, VariableDeclarationExpr}
 import de.terrestris.java2typescript.ast
-import de.terrestris.java2typescript.ast.SyntaxKind
+import de.terrestris.java2typescript.ast.{ConditionalExpression, SyntaxKind}
 
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
+
 def transformExpression(context: Context, expr: Expression): ast.Expression =
   expr match
-    case expr: VariableDeclarationExpr =>
-      ast.VariableDeclarationList(
-        expr.getVariables.asScala.map(transformDeclaratorToVariable.curried(context)).toList
-      )
+    case expr: VariableDeclarationExpr => transformVariableDeclarationExpression(context, expr)
     case expr: LiteralExpr => transformLiteral(expr)
     case expr: ObjectCreationExpr => transformObjectCreationExpression(context, expr)
     case expr: BinaryExpr => transformBinaryExpression(context, expr)
@@ -27,9 +26,30 @@ def transformExpression(context: Context, expr: Expression): ast.Expression =
     case expr: ArrayCreationExpr => transformArrayCreationExpression(context, expr)
     case expr: ArrayAccessExpr => transformArrayAccessExpression(context, expr)
     case expr: CastExpr => transformCastExpression(context, expr)
+    case expr: SuperExpr => ast.SuperKeyword()
+    case expr: ConditionalExpr => transformConditionalExpression(context, expr)
+    case expr: InstanceOfExpr => ast.BinaryExpression(
+      transformExpression(context, expr.getExpression),
+      transformName(expr.getType.asInstanceOf[ClassOrInterfaceType].getName),
+      ast.InstanceOfKeyword()
+    )
     case _ => throw new Error("not supported")
+    
+def transformVariableDeclarationExpression(context: Context, expr: VariableDeclarationExpr) = {
+  ast.VariableDeclarationList(
+    expr.getVariables.asScala.map(transformDeclaratorToVariable.curried(context)).toList
+  )
+}
 
-def transformCastExpression(context: Context, expr: CastExpr) = {
+def transformConditionalExpression(context: Context, expr: ConditionalExpr) = {
+  ast.ConditionalExpression(
+    transformExpression(context, expr.getCondition),
+    transformExpression(context, expr.getThenExpr),
+    transformExpression(context, expr.getElseExpr)
+  )
+}
+
+def transformCastExpression(context: Context, expr: CastExpr) =
   val `type` = transformType(expr.getType)
   val castExpression = transformExpression(context, expr.getExpression)
   if (`type`.kind == SyntaxKind.NumberKeyword)
@@ -41,8 +61,10 @@ def transformCastExpression(context: Context, expr: CastExpr) = {
       List(castExpression)
     )
   else
-    throw new Error("not supported")
-}
+    ast.AsExpression(
+      castExpression,
+      `type`
+    )
 
 def transformArrayAccessExpression(context: Context, expr: ArrayAccessExpr) =
   ast.ElementAccessExpression(
@@ -52,7 +74,9 @@ def transformArrayAccessExpression(context: Context, expr: ArrayAccessExpr) =
 
 def transformArrayCreationExpression(context: Context, expr: ArrayCreationExpr) =
   ast.ArrayLiteralExpression(
-    expr.getInitializer.orElseThrow().getValues.asScala.map(transformExpression.curried(context)).toList
+    expr.getInitializer.toScala.toList
+      .flatMap(ie => ie.getValues.asScala)
+      .map(transformExpression.curried(context))
   )
 
 def transformMethodCall(context: Context, expr: MethodCallExpr) =
@@ -82,12 +106,12 @@ def transformBinaryExpression(context: Context, expr: BinaryExpr): ast.BinaryExp
 def transformUnaryExpression(context: Context, expr: UnaryExpr): ast.PrefixUnaryExpression|ast.PostfixUnaryExpression =
   if (expr.getOperator.isPrefix)
     ast.PrefixUnaryExpression(
-      transformOperator(expr.getOperator.name).kind.kind,
+      transformOperator(expr.getOperator.name).kind,
       transformExpression(context, expr.getExpression)
     )
   else
     ast.PostfixUnaryExpression(
-      transformOperator(expr.getOperator.name).kind.kind,
+      transformOperator(expr.getOperator.name).kind,
       transformExpression(context, expr.getExpression)
     )
 

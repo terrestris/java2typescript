@@ -34,21 +34,21 @@ export class A {
 class A {
     public A(Integer a, String b) {
     }
-    public A(Boolean c) {
+    public A(Boolean c[]) {
     }
 }
 ```
 ```typescript
 export class A {
     public constructor(a: number, b: string);
-    public constructor(c: boolean);
+    public constructor(c: boolean[]);
     public constructor(...args: any[]) {
         if (args.length === 2 && typeof args[0] === "number" && typeof args[1] === "string") {
             let a: number = args[0];
             let b: string = args[1];
         }
-        if (args.length === 1 && typeof args[0] === "boolean") {
-            let c: boolean = args[0];
+        if (args.length === 1 && typeof args[0] === "array") {
+            let c: boolean[] = args[0];
         }
         throw new Error("overload does not exist");
     }

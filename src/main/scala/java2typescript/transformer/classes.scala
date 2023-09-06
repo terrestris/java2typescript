@@ -1,15 +1,38 @@
 package de.terrestris.java2typescript.transformer
 
-import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, ConstructorDeclaration, FieldDeclaration, MethodDeclaration, Parameter}
+import com.github.javaparser.ast.NodeList
+import com.github.javaparser.ast.`type`.ClassOrInterfaceType
+import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, ConstructorDeclaration, FieldDeclaration, InitializerDeclaration, MethodDeclaration, Parameter}
 import de.terrestris.java2typescript.ast
+import de.terrestris.java2typescript.ast.SyntaxKind
 
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
+def transformHeritage(nodes: NodeList[ClassOrInterfaceType], token: SyntaxKind): Option[ast.HeritageClause] =
+  val implementedTypes = nodes.asScala.toList
+  if (implementedTypes.nonEmpty)
+    Some(
+      ast.HeritageClause(
+        implementedTypes.map {
+          t =>
+            ast.ExpressionWithTypeArguments(
+              transformName(t.getName),
+              t.getTypeArguments.toScala.toList
+                .flatMap(nl => nl.asScala.toList)
+                .map(transformType)
+            )
+        },
+        token
+      )
+    )
+  else
+    None
+
 def transformClassOrInterfaceDeclaration(
   decl: ClassOrInterfaceDeclaration,
   additionalModifiers: List[ast.Modifier] = List()
-): List[ast.ClassDeclaration|ast.InterfaceDeclaration] =
+): List[ast.Statement] =
   val className = decl.getName.getIdentifier
   val context = Context(decl)
   val contextsAndMembers = decl.getMembers.asScala
@@ -19,9 +42,9 @@ def transformClassOrInterfaceDeclaration(
     case Right(ms) => ms
   }
 
-  val internalClasses = contextsAndMembers
+  val extractedStatments = contextsAndMembers
     .collect {
-      case Left(c) => c.internalClasses
+      case Left(c) => c.extractedStatements
     }
     .flatMap {
       ics => ics
@@ -29,9 +52,15 @@ def transformClassOrInterfaceDeclaration(
     .toList
 
   if (decl.isInterface)
-    ast.InterfaceDeclaration(transformName(decl.getName), members = memberVals.toList, modifiers = additionalModifiers)
+    ast.InterfaceDeclaration(
+      transformName(decl.getName),
+      members = memberVals.toList,
+      modifiers = additionalModifiers,
+      heritageClauses = transformHeritage(decl.getExtendedTypes, SyntaxKind.ExtendsKeyword).toList
+        ::: transformHeritage(decl.getImplementedTypes, SyntaxKind.ImplementsKeyword).toList
+    )
       ::
-      internalClasses
+      extractedStatments
   else {
     val properties = memberVals
       .collect {
@@ -66,10 +95,12 @@ def transformClassOrInterfaceDeclaration(
     ast.ClassDeclaration(
       transformName(decl.getName),
       members = properties ::: constructorsWithOverloads ::: methodsWithOverloads,
-      modifiers = additionalModifiers
+      modifiers = additionalModifiers,
+      heritageClauses = transformHeritage(decl.getExtendedTypes, SyntaxKind.ExtendsKeyword).toList
+        ::: transformHeritage(decl.getImplementedTypes, SyntaxKind.ImplementsKeyword).toList
     )
       ::
-      internalClasses
+      extractedStatments
   }
 
 def transformMember(context: Context, member: BodyDeclaration[?]): Either[Context, ast.Member] =
@@ -84,7 +115,12 @@ def transformMember(context: Context, member: BodyDeclaration[?]): Either[Contex
     case member: ConstructorDeclaration =>
       Right(transformConstructorDeclaration(context, member))
     case member: ClassOrInterfaceDeclaration =>
-      Left(context.addInternalClasses(transformClassOrInterfaceDeclaration(member)))
+      Left(context.addExtractedStatements(transformClassOrInterfaceDeclaration(member)))
+    case member: InitializerDeclaration =>
+      if (!member.isStatic) {
+        throw new Error("non static initializers as class members are not supported")
+      }
+      Left(context.addExtractedStatements(transformBlockStatement(context, member.getBody).statements))
 
 def transformConstructorDeclaration(context: Context, declaration: ConstructorDeclaration) =
   val methodParameters = declaration.getParameters.asScala.map(transformParameter).toList

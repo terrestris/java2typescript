@@ -13,14 +13,14 @@ import scala.jdk.OptionConverters.*
 
 class Context(
   val classOrInterface: ClassOrInterfaceDeclaration,
-  val internalClasses: List[ast.ClassDeclaration|ast.InterfaceDeclaration] = List(),
+  val extractedStatements: List[ast.Statement] = List(),
   val parameters: List[ast.Parameter] = List()
 ) {
-  def addInternalClasses(cs: List[ast.ClassDeclaration | ast.InterfaceDeclaration]): Context =
-    Context(classOrInterface, internalClasses ::: cs, parameters)
+  def addExtractedStatements(sts: List[ast.Statement]): Context =
+    Context(classOrInterface, extractedStatements ::: sts, parameters)
 
   def addParameters(ps: List[ast.Parameter]): Context =
-    Context(classOrInterface, internalClasses, parameters ::: ps)
+    Context(classOrInterface, extractedStatements, parameters ::: ps)
 
   def isNonStaticMember(name: SimpleName): Boolean =
     classOrInterface.getMembers.asScala
@@ -113,13 +113,13 @@ def transformType(aType: Type): ast.Type =
     case _ => throw new Error("not supported")
 
 def transformTypeArguments(args: Optional[NodeList[Type]]): List[ast.Type] =
-  args.map(o => o.asScala.map(transformType).toList).orElse(List[ast.Type]())
+  args.toScala.map(o => o.asScala.map(transformType)).toList.flatten
 
 def transformLiteral(expr: LiteralExpr): ast.Literal =
   expr match
     case expr: StringLiteralExpr =>
       ast.StringLiteral(expr.getValue)
-    case expr: (IntegerLiteralExpr|DoubleLiteralExpr) =>
+    case expr: (IntegerLiteralExpr|DoubleLiteralExpr|LongLiteralExpr) =>
       ast.NumericLiteral(expr.getValue)
     case expr: BooleanLiteralExpr =>
       if (expr.getValue)
@@ -127,4 +127,5 @@ def transformLiteral(expr: LiteralExpr): ast.Literal =
       else
         ast.FalseKeyword()
     case expr: NullLiteralExpr => ast.NullKeyword()
+    case expr: CharLiteralExpr => ast.StringLiteral(expr.toString)
     case _ => throw new Error("not supported")

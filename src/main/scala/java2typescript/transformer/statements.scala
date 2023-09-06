@@ -1,7 +1,7 @@
 package de.terrestris.java2typescript.transformer
 
-import com.github.javaparser.ast.expr.VariableDeclarationExpr
-import com.github.javaparser.ast.stmt.{BlockStmt, BreakStmt, ContinueStmt, ExpressionStmt, ForStmt, IfStmt, ReturnStmt, Statement, ThrowStmt, WhileStmt}
+import com.github.javaparser.ast.expr.{ObjectCreationExpr, VariableDeclarationExpr}
+import com.github.javaparser.ast.stmt.{BlockStmt, BreakStmt, CatchClause, ContinueStmt, ExplicitConstructorInvocationStmt, ExpressionStmt, ForEachStmt, ForStmt, IfStmt, ReturnStmt, Statement, SwitchEntry, SwitchStmt, ThrowStmt, TryStmt, WhileStmt}
 import de.terrestris.java2typescript.ast
 
 import scala.jdk.CollectionConverters.*
@@ -10,6 +10,26 @@ import scala.jdk.OptionConverters.*
 def transformBlockStatement(context: Context, stmt: BlockStmt): ast.Block =
   ast.Block(stmt.getStatements.asScala.map(transformStatement.curried(context)).toList)
 
+def transformSwitchStatement(context: Context, stmt: SwitchStmt) = {
+  ast.SwitchStatement(
+    transformExpression(context, stmt.getSelector),
+    ast.CaseBlock(
+      stmt.getEntries.asScala.toList.map(entry =>
+        val labels = entry.getLabels.asScala
+        val statements = entry.getStatements.asScala.map(transformStatement.curried(context)).toList
+        if (labels.nonEmpty)
+          if (labels.length > 1)
+            throw new Error("more than one label not supported for switch statement")
+          ast.CaseClause(
+            transformExpression(context, labels.head),
+            statements
+          )
+        else
+          ast.DefaultClause(statements)
+      )
+    )
+  )
+}
 def transformStatement(context: Context, stmt: Statement): ast.Statement =
   stmt match
     case stmt: ExpressionStmt =>
@@ -21,7 +41,7 @@ def transformStatement(context: Context, stmt: Statement): ast.Statement =
     case stmt: ReturnStmt => ast.ReturnStatement(stmt.getExpression.toScala.map(transformExpression.curried(context)))
     case stmt: IfStmt => transformIfStatement(context, stmt)
     case stmt: BlockStmt => transformBlockStatement(context, stmt)
-    case stmt: ThrowStmt => ast.ThrowStatement(transformExpression(context, stmt.getExpression))
+    case stmt: ThrowStmt => transformThrowStatement(context, stmt)
     case stmt: WhileStmt => ast.WhileStatement(
       transformExpression(context, stmt.getCondition),
       transformStatement(context, stmt.getBody)
@@ -29,7 +49,69 @@ def transformStatement(context: Context, stmt: Statement): ast.Statement =
     case stmt: ForStmt => transformForStatment(context, stmt)
     case stmt: BreakStmt => ast.BreakStatement()
     case stmt: ContinueStmt => ast.ContinueStatement()
+    case stmt: TryStmt => transformTryStatement(context, stmt)
+    case stmt: ExplicitConstructorInvocationStmt => ast.ExpressionStatement(
+      ast.CallExpression(
+        ast.SuperKeyword()
+      )
+    )
+    case stmt: SwitchStmt => transformSwitchStatement(context, stmt)
+    case stmt: ForEachStmt => ast.ForOfStatement(
+      transformVariableDeclarationExpression(context, stmt.getVariable),
+      transformExpression(context, stmt.getIterable),
+      transformStatement(context, stmt.getBody)
+    )
     case _ => throw new Error("statement type not supported")
+
+def transformCatchClauses(context: Context, clauses: List[CatchClause]): Option[ast.CatchClause] =
+  if clauses.isEmpty then
+    None
+  else if clauses.length > 1 then
+    throw new Error("multiple catch branches not supported")
+    // TODO: This will be tricky as error types are probably are not available in typescript code.
+    //  Also the errors might not be thrown at all
+  else
+    Some(
+      ast.CatchClause(
+        ast.VariableDeclaration(
+          ast.Identifier(clauses.head.getParameter.getName.asString),
+          ast.AnyKeyword()
+        ),
+        transformBlockStatement(context, clauses.head.getBody)
+      )
+    )
+
+
+def transformTryStatement(context: Context, stmt: TryStmt) =
+  ast.TryStatement(
+    tryBlock = transformBlockStatement(context, stmt.getTryBlock),
+    catchClause = transformCatchClauses(context, stmt.getCatchClauses.asScala.toList),
+    finallyBlock = stmt.getFinallyBlock.toScala.map(transformBlockStatement.curried(context))
+  )
+
+def transformThrowStatement(context: Context, stmt: ThrowStmt): ast.ThrowStatement =
+  stmt.getExpression match
+    case err: ObjectCreationExpr =>
+      val name = err.getType.getName
+      if (name.asString() == "Error")
+        return ast.ThrowStatement(transformExpression(context, err))
+      val args = err.getArguments.asScala
+      if (args.length != 1)
+        throw new Error("more then one error argument not supported")
+
+      ast.ThrowStatement(
+        ast.NewExpression(
+          ast.Identifier("Error"),
+          List(
+            ast.BinaryExpression(
+              ast.StringLiteral(s"$name: "),
+              transformExpression(context, args.head),
+              ast.PlusToken()
+            )
+          )
+        )
+      )
+    case _ => throw new Error("throw type not supported")
 
 def transformForStatment(context: Context, stmt: ForStmt) = {
   val init = stmt.getInitialization.asScala

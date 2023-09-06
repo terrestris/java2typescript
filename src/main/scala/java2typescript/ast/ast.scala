@@ -1,5 +1,7 @@
 package de.terrestris.java2typescript.ast
 
+import de.terrestris.java2typescript.ast.SyntaxKind.ColonToken
+
 trait Node {
   val kind: SyntaxKind
   val `flags`: Int = 0
@@ -40,7 +42,7 @@ case class TypeReference(
 case class ClassDeclaration(
   name: Identifier,
   typeParameters: List[Type] = List(),
-  heritageClauses: List[Type] = List(),
+  heritageClauses: List[HeritageClause] = List(),
   members: List[Member] = List(),
   modifiers: List[Modifier] = List()
 ) extends Statement {
@@ -50,7 +52,7 @@ case class ClassDeclaration(
 case class VariableDeclaration(
   name: Identifier,
   `type`: Type,
-  initializer: Option[Expression]
+  initializer: Option[Expression] = None
 ) extends Node {
   val kind: SyntaxKind = SyntaxKind.VariableDeclaration
 }
@@ -58,7 +60,7 @@ case class VariableDeclaration(
 case class InterfaceDeclaration(
   name: Identifier,
   typeParameters: List[Type] = List(),
-  heritageClauses: List[Type] = List(),
+  heritageClauses: List[HeritageClause] = List(),
   members: List[Member] = List(),
   modifiers: List[Modifier] = List()
 ) extends Statement {
@@ -79,6 +81,20 @@ case class ImportClause(
   val isTypeOnly = false
 }
 
+case class HeritageClause(
+  types: List[ExpressionWithTypeArguments],
+  token: SyntaxKind
+) extends Node {
+  val kind: SyntaxKind = SyntaxKind.HeritageClause
+}
+
+case class CatchClause(
+  variableDeclaration: VariableDeclaration,
+  block: Block
+) extends Node {
+  val kind: SyntaxKind = SyntaxKind.CatchClause
+}
+
 case class NamedImports(
   elements: List[ImportSpecifier]
 ) extends Node {
@@ -96,6 +112,25 @@ case class ArrayType(
   elementType: Type
 ) extends Type {
   val kind: SyntaxKind = SyntaxKind.ArrayType
+}
+
+case class CaseBlock(
+  clauses: List[CaseClause|DefaultClause]
+) extends Node {
+  val kind: SyntaxKind = SyntaxKind.CaseBlock
+}
+
+case class CaseClause(
+  expression: Expression,
+  statements: List[Statement]
+) extends Node {
+  val kind: SyntaxKind = SyntaxKind.CaseClause
+}
+
+case class DefaultClause(
+  statements: List[Statement]
+) extends Node {
+  val kind: SyntaxKind = SyntaxKind.DefaultClause
 }
 
 // Members
@@ -181,6 +216,20 @@ case class TypeOfExpression(
   val kind: SyntaxKind = SyntaxKind.TypeOfExpression
 }
 
+case class PrefixUnaryExpression(
+  operator: SyntaxKind,
+  operand: Expression
+) extends Expression {
+  val kind: SyntaxKind = SyntaxKind.PrefixUnaryExpression
+}
+
+case class PostfixUnaryExpression(
+  operator: SyntaxKind,
+  operand: Expression
+) extends Expression {
+  val kind: SyntaxKind = SyntaxKind.PostfixUnaryExpression
+}
+
 case class BinaryExpression(
   left: Expression,
   right: Expression,
@@ -189,18 +238,28 @@ case class BinaryExpression(
   val kind: SyntaxKind = SyntaxKind.BinaryExpression
 }
 
-case class PrefixUnaryExpression(
-  operator: Int,
-  operand: Expression
+case class ConditionalExpression(
+  condition: Expression,
+  whenTrue: Expression,
+  whenFalse: Expression,
 ) extends Expression {
-  val kind: SyntaxKind = SyntaxKind.PrefixUnaryExpression
+  val questionToken: QuestionToken = QuestionToken()
+  val colonToken: ColonToken = ColonToken()
+  val kind: SyntaxKind = SyntaxKind.ConditionalExpression
 }
 
-case class PostfixUnaryExpression(
-  operator: Int,
-  operand: Expression
+case class ExpressionWithTypeArguments(
+  expression: Expression,
+  typeArguments: List[Type] = List()
 ) extends Expression {
-  val kind: SyntaxKind = SyntaxKind.PostfixUnaryExpression
+  val kind: SyntaxKind = SyntaxKind.ExpressionWithTypeArguments
+}
+
+case class AsExpression(
+  expression: Expression,
+  `type`: Type
+) extends Expression {
+  val kind: SyntaxKind = SyntaxKind.AsExpression
 }
 
 case class VariableDeclarationList(
@@ -270,8 +329,13 @@ case class ForStatement(
   val kind: SyntaxKind = SyntaxKind.ForStatement
 }
 
-//  case ForInStatement extends SyntaxKind(248)
-//  case ForOfStatement extends SyntaxKind(249)
+case class ForOfStatement(
+  initializer: VariableDeclarationList,
+  expression: Expression,
+  statement: Statement
+) extends Statement {
+  val kind: SyntaxKind = SyntaxKind.ForOfStatement
+}
 
 case class ContinueStatement() extends Statement {
   val kind: SyntaxKind = SyntaxKind.ContinueStatement
@@ -287,7 +351,12 @@ case class ReturnStatement(
   val kind: SyntaxKind = SyntaxKind.ReturnStatement
 }
 
-//  case SwitchStatement extends SyntaxKind(254)
+case class SwitchStatement(
+  expression: Expression,
+  caseBlock: CaseBlock
+) extends Statement {
+  val kind: SyntaxKind = SyntaxKind.SwitchStatement
+}
 
 case class ThrowStatement(
   expression: Expression
@@ -295,12 +364,22 @@ case class ThrowStatement(
   val kind: SyntaxKind = SyntaxKind.ThrowStatement
 }
 
-//  case TryStatement extends SyntaxKind(257)
+case class TryStatement(
+  tryBlock: Block,
+  catchClause: Option[CatchClause],
+  finallyBlock: Option[Block]
+) extends Statement {
+  val kind: SyntaxKind = SyntaxKind.TryStatement
+}
 
 // Keyword
 
 case class ExportKeyword() extends Modifier {
   val kind: SyntaxKind = SyntaxKind.ExportKeyword
+}
+
+case class ExtendsKeyword() extends Token {
+  val kind: SyntaxKind = SyntaxKind.ExtendsKeyword
 }
 
 case class FalseKeyword() extends Literal {
@@ -315,6 +394,10 @@ case class NullKeyword() extends Literal {
   val kind: SyntaxKind = SyntaxKind.NullKeyword
 }
 
+case class SuperKeyword() extends Expression {
+  val kind: SyntaxKind = SyntaxKind.SuperKeyword
+}
+
 case class ThisKeyword() extends Expression {
   val kind: SyntaxKind = SyntaxKind.ThisKeyword
 }
@@ -325,6 +408,10 @@ case class TrueKeyword() extends Literal {
 
 case class VoidKeyword() extends Type {
   val kind: SyntaxKind = SyntaxKind.VoidKeyword
+}
+
+case class ImplementsKeyword() extends Token {
+  val kind: SyntaxKind = SyntaxKind.ImplementsKeyword
 }
 
 case class PrivateKeyword() extends Modifier {
@@ -429,6 +516,14 @@ case class BarBarToken() extends Token {
   val kind: SyntaxKind = SyntaxKind.BarBarToken
 }
 
+case class QuestionToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.QuestionToken
+}
+
+case class ColonToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.ColonToken
+}
+
 case class EqualsToken() extends Token {
   val kind: SyntaxKind = SyntaxKind.EqualsToken
 }
@@ -439,4 +534,12 @@ case class PlusEqualsToken() extends Token {
 
 case class MinusEqualsToken() extends Token {
   val kind: SyntaxKind = SyntaxKind.MinusEqualsToken
+}
+
+case class GreaterThanGreaterThanGreaterThanEqualsToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken
+}
+
+case class CaretToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.CaretToken
 }
