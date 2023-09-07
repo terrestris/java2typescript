@@ -1,7 +1,7 @@
 package de.terrestris.java2typescript.transformer
 
-import com.github.javaparser.ast.expr.{ObjectCreationExpr, VariableDeclarationExpr}
-import com.github.javaparser.ast.stmt.{BlockStmt, BreakStmt, CatchClause, ContinueStmt, ExplicitConstructorInvocationStmt, ExpressionStmt, ForEachStmt, ForStmt, IfStmt, ReturnStmt, Statement, SwitchEntry, SwitchStmt, ThrowStmt, TryStmt, WhileStmt}
+import com.github.javaparser.ast.expr.{NameExpr, ObjectCreationExpr}
+import com.github.javaparser.ast.stmt.{BlockStmt, BreakStmt, CatchClause, ContinueStmt, DoStmt, EmptyStmt, ExplicitConstructorInvocationStmt, ExpressionStmt, ForEachStmt, ForStmt, IfStmt, ReturnStmt, Statement, SwitchStmt, ThrowStmt, TryStmt, WhileStmt}
 import de.terrestris.java2typescript.ast
 
 import scala.jdk.CollectionConverters.*
@@ -10,7 +10,7 @@ import scala.jdk.OptionConverters.*
 def transformBlockStatement(context: Context, stmt: BlockStmt): ast.Block =
   ast.Block(stmt.getStatements.asScala.map(transformStatement.curried(context)).toList)
 
-def transformSwitchStatement(context: Context, stmt: SwitchStmt) = {
+def transformSwitchStatement(context: Context, stmt: SwitchStmt) =
   ast.SwitchStatement(
     transformExpression(context, stmt.getSelector),
     ast.CaseBlock(
@@ -29,7 +29,7 @@ def transformSwitchStatement(context: Context, stmt: SwitchStmt) = {
       )
     )
   )
-}
+
 def transformStatement(context: Context, stmt: Statement): ast.Statement =
   stmt match
     case stmt: ExpressionStmt =>
@@ -61,6 +61,11 @@ def transformStatement(context: Context, stmt: Statement): ast.Statement =
       transformExpression(context, stmt.getIterable),
       transformStatement(context, stmt.getBody)
     )
+    case stmt: DoStmt => ast.DoStatement(
+      transformStatement(context, stmt.getBody),
+      transformExpression(context, stmt.getCondition)
+    )
+    case stmt: EmptyStmt => ast.EmptyStatement()
     case _ => throw new Error("statement type not supported")
 
 def transformCatchClauses(context: Context, clauses: List[CatchClause]): Option[ast.CatchClause] =
@@ -96,13 +101,16 @@ def transformThrowStatement(context: Context, stmt: ThrowStmt): ast.ThrowStateme
       if (name.asString() == "Error")
         return ast.ThrowStatement(transformExpression(context, err))
       val args = err.getArguments.asScala
-      if (args.length != 1)
-        throw new Error("more then one error argument not supported")
+      if (args.length > 1)
+        println("WARN: all but the first error argument are dropped.")
 
       ast.ThrowStatement(
         ast.NewExpression(
           ast.Identifier("Error"),
           List(
+          if (args.isEmpty)
+            ast.StringLiteral(name.toString)
+          else
             ast.BinaryExpression(
               ast.StringLiteral(s"$name: "),
               transformExpression(context, args.head),
@@ -111,16 +119,19 @@ def transformThrowStatement(context: Context, stmt: ThrowStmt): ast.ThrowStateme
           )
         )
       )
+    case err: NameExpr => ast.ThrowStatement(
+      transformName(err.getName)
+    )
     case _ => throw new Error("throw type not supported")
 
-def transformForStatment(context: Context, stmt: ForStmt) = {
+def transformForStatment(context: Context, stmt: ForStmt) =
   val init = stmt.getInitialization.asScala
   if (init.length > 1)
     throw new Error("only one initializer for for loop supported")
   val transformedInit =
     if (init.nonEmpty)
-      if (!init.head.isInstanceOf[VariableDeclarationExpr])
-        throw new Error("only variable declaration expressions are supported in initializer")
+      if (init.length > 1)
+        throw new Error("only one expression supported in initializer")
       else
         Some(transformExpression(context, init.head))
     else
@@ -139,7 +150,6 @@ def transformForStatment(context: Context, stmt: ForStmt) = {
     incrementor = transformedUpdate,
     statement = transformStatement(context, stmt.getBody)
   )
-}
 
 def transformIfStatement(context: Context, stmt: IfStmt) =
   ast.IfStatement(

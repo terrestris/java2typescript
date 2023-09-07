@@ -1,4 +1,5 @@
 # Overloading
+
 ## method overloading
 ```java
 class A {
@@ -29,6 +30,7 @@ export class A {
     }
 }
 ```
+
 ## Constructor overloading
 ```java
 class A {
@@ -51,6 +53,32 @@ export class A {
             let c: boolean[] = args[0];
         }
         throw new Error("overload does not exist");
+    }
+}
+```
+
+## abstract overload
+```java
+abstract class CoordinateOperation implements GeometryEditorOperation {
+    public final Geometry edit(Geometry geometry, GeometryFactory factory) {
+        if (geometry instanceof LineString) {
+            return factory.createLineString(edit(geometry.getCoordinates(),
+                    geometry));
+        }
+        
+        return geometry;
+    }
+
+    public abstract Coordinate[] edit(Coordinate[] coordinates, Geometry geometry);
+}
+```
+```typescript
+export abstract class CoordinateOperation implements GeometryEditorOperation {
+    public edit(geometry: Geometry, factory: GeometryFactory): Geometry {
+        if (geometry instanceof LineString) {
+            return factory.createLineString(this.edit(geometry.getCoordinates(), geometry));
+        }
+        return geometry;
     }
 }
 ```

@@ -89,9 +89,11 @@ def transformDeclaratorToProperty(context: Context, decl: VariableDeclarator, mo
 def transformModifier(modifier: Modifier): Option[ast.Modifier] =
   modifier.getKeyword match
     case Keyword.PUBLIC => Some(ast.PublicKeyword())
+    case Keyword.DEFAULT => Some(ast.PublicKeyword())
     case Keyword.PROTECTED => Some(ast.ProtectedKeyword())
     case Keyword.PRIVATE => Some(ast.PrivateKeyword())
     case Keyword.STATIC => Some(ast.StaticKeyword())
+    case Keyword.ABSTRACT => Some(ast.AbstractKeyword())
     case Keyword.FINAL => None
     case key => throw new Error(s"Modifier $key not supported")
 
@@ -110,6 +112,7 @@ def transformType(aType: Type): ast.Type =
     case aType: ArrayType => ast.ArrayType(transformType(aType.getComponentType))
     case aType: PrimitiveType =>
       transformType(aType.toBoxedType)
+    case aType: WildcardType => ast.AnyKeyword()
     case _ => throw new Error("not supported")
 
 def transformTypeArguments(args: Optional[NodeList[Type]]): List[ast.Type] =

@@ -89,6 +89,17 @@ for (let i: number = start;; i += inc) {
 }
 ```
 
+## for2
+options: methodBody
+```java
+for (j = 0; j < last; j++)
+    newCoordinates[j] = coordinates[(i + j) % last];
+```
+```typescript
+for (j = 0; j < last; j++)
+    newCoordinates[j] = coordinates[(i + j) % last];
+```
+
 ## switch
 options: methodBody
 ```java
@@ -128,4 +139,17 @@ for (Geometry hole : holesFixed) {
 for (let hole: Geometry of holesFixed) {
     holes.add(hole);
 }
+```
+
+## do while
+options: methodBody
+```java
+do {
+    i++;
+} while (i < 10);
+```
+```typescript
+do {
+    i++;
+} while (i < 10);
 ```

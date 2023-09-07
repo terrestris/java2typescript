@@ -4,47 +4,48 @@ import de.terrestris.java2typescript.ast
 
 import scala.collection.mutable
 
-def groupMethodsByName(methods: List[ast.MethodDeclaration]): List[List[ast.MethodDeclaration]] = {
+def groupMethodsByName(methods: List[ast.MethodDeclaration]): List[List[ast.MethodDeclaration]] =
   if (methods.isEmpty)
     return List()
   var name = methods.head.name
   var current = mutable.Buffer[ast.MethodDeclaration](methods.head)
   val overall = mutable.Buffer[List[ast.MethodDeclaration]]()
+  def appendAndFilter() =
+    if (current.length > 1)
+      overall.append(current.filter(m => !m.modifiers.exists(m => m.kind == ast.SyntaxKind.AbstractKeyword)).toList)
+    else
+      overall.append(current.toList)
   for (
     method <- methods.tail
   ) {
     if (method.name == name)
       current.append(method)
     else
-      overall.append(current.toList)
+      appendAndFilter()
       name = method.name
       current = mutable.Buffer(method)
   }
-  overall.append(current.toList)
+  appendAndFilter()
   overall.toList
-}
 
-def createMethodOverloads(methods: List[ast.MethodDeclaration]): List[ast.MethodDeclaration] = {
+def createMethodOverloads(methods: List[ast.MethodDeclaration]): List[ast.MethodDeclaration] =
   methods.map(removeBody) ::: List(
     createOverloadFunction(methods)
   )
-}
 
-def createConstructorOverloads(methods: List[ast.Constructor]): List[ast.Constructor] = {
+def createConstructorOverloads(methods: List[ast.Constructor]): List[ast.Constructor] =
   methods.map(removeBody) ::: List(
     createOverloadFunction(methods)
   )
-}
 
-def createArgsParameter = {
+def createArgsParameter =
   List(ast.Parameter(
     name = ast.Identifier("args"),
     dotDotDotToken = Some(ast.DotDotDotToken()),
     `type` = ast.ArrayType(ast.AnyKeyword())
   ))
-}
 
-def createOverloadFunction(constructors: List[ast.Constructor]): ast.Constructor = {
+def createOverloadFunction(constructors: List[ast.Constructor]): ast.Constructor =
   val ps = createArgsParameter
   val b = Some(ast.Block(
     constructors.map(m => createSignatureIfBlock(m.parameters, m.body.get))
@@ -58,9 +59,8 @@ def createOverloadFunction(constructors: List[ast.Constructor]): ast.Constructor
     body = b,
     modifiers = constructors.head.modifiers
   )
-}
 
-def createOverloadFunction(methods: List[ast.MethodDeclaration]): ast.MethodDeclaration = {
+def createOverloadFunction(methods: List[ast.MethodDeclaration]): ast.MethodDeclaration =
   val ps = createArgsParameter
   val b = Some(ast.Block(
     methods.map(m => createSignatureIfBlock(m.parameters, m.body.get))
@@ -76,9 +76,8 @@ def createOverloadFunction(methods: List[ast.MethodDeclaration]): ast.MethodDecl
     body = b,
     modifiers = methods.head.modifiers
   )
-}
 
-def createSignatureIfBlock(parameters: List[ast.Parameter], body: ast.Block): ast.IfStatement = {
+def createSignatureIfBlock(parameters: List[ast.Parameter], body: ast.Block): ast.IfStatement =
   ast.IfStatement(
     andExpressions(
       List(ast.BinaryExpression(
@@ -102,7 +101,6 @@ def createSignatureIfBlock(parameters: List[ast.Parameter], body: ast.Block): as
         ::: body.statements
     )
   )
-}
 
 def andExpressions(expressions: List[ast.Expression]): ast.Expression =
   expressions.tail.foldLeft(expressions.head) {
