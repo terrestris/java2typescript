@@ -1,4 +1,3 @@
-package de.terrestris
 package java2typescript
 
 case class ImportLocation(

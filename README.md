@@ -32,9 +32,22 @@ Run program
 sbt "run config/j2ts-config.json"
 ```
 
+Run program for selected files (config is still required)
+
+```shell
+sbt "run config/j2ts-config.json ../jsts/jts/modules/core/src/main/java/org/locationtech/jts/geom/impl/PackedCoordinateSequence.java"
+```
+
 Update TypeScript Version
 -------------------------
 
 * Install new version of `ts-morph` in `/src/main/javascript`.
 * Find enum `SyntaxKind` in `typescript.d.ts` (`node_modules/@ts-morph/common/lib/typescript.d.ts`)
 * Convert enum to scala in `java2typescript/ast/SyntaxKind.scala`
+
+TODOs
+-----
+
+* add imports for classes from the same package
+* add package.json
+* add tsconfig

@@ -1,4 +1,3 @@
-package de.terrestris
 package java2typescript
 
 def wrapStatementJava(code: String) =

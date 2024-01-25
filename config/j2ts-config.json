@@ -29,16 +29,5 @@
     }
   ],
   "skipFiles": [
-    "org/locationtech/jts/geom/impl/PackedCoordinateSequence.java",
-    "org/locationtech/jts/geom/CoordinateList.java",
-    "org/locationtech/jts/geom/prep/PreparedPolygon.java",
-    "org/locationtech/jts/geom/prep/PreparedLineString.java",
-    "org/locationtech/jts/util/TestBuilderProxy.java",
-    "org/locationtech/jts/index/hprtree/HPRtree.java",
-    "org/locationtech/jts/index/intervalrtree/SortedPackedIntervalRTree.java",
-    "org/locationtech/jts/index/quadtree/NodeBase.java",
-    "org/locationtech/jts/index/strtree/AbstractSTRtree.java",
-    "org/locationtech/jts/math/DD.java",
-    "org/locationtech/jts/algorithm/locate/IndexedPointInAreaLocator.java"
   ]
 }

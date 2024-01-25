@@ -1,8 +1,7 @@
-package de.terrestris
 package java2typescript.transformer
 
 import com.github.javaparser.ast.{ImportDeclaration, PackageDeclaration}
-import de.terrestris.java2typescript.{Config, ast}
+import java2typescript.{Config, ast}
 
 import java.util.Optional
 
