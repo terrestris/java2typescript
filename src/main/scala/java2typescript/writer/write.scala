@@ -1,4 +1,5 @@
-package de.terrestris.java2typescript.writer
+package de.terrestris
+package java2typescript.writer
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include
 import com.fasterxml.jackson.databind.SerializationFeature

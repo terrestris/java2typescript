@@ -1,4 +1,5 @@
-package de.terrestris.java2typescript.transformer
+package de.terrestris
+package java2typescript.transformer
 
 import com.github.javaparser.ast.NodeList
 import com.github.javaparser.ast.`type`.ClassOrInterfaceType

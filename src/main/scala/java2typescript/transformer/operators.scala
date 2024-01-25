@@ -1,4 +1,5 @@
-package de.terrestris.java2typescript.transformer
+package de.terrestris
+package java2typescript.transformer
 
 import de.terrestris.java2typescript.ast
 

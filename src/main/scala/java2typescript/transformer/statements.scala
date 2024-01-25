@@ -1,4 +1,5 @@
-package de.terrestris.java2typescript.transformer
+package de.terrestris
+package java2typescript.transformer
 
 import com.github.javaparser.ast.expr.{NameExpr, ObjectCreationExpr}
 import com.github.javaparser.ast.stmt.{AssertStmt, BlockStmt, BreakStmt, CatchClause, ContinueStmt, DoStmt, EmptyStmt, ExplicitConstructorInvocationStmt, ExpressionStmt, ForEachStmt, ForStmt, IfStmt, ReturnStmt, Statement, SwitchStmt, ThrowStmt, TryStmt, WhileStmt}

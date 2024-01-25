@@ -1,4 +1,5 @@
-package de.terrestris.java2typescript
+package de.terrestris
+package java2typescript
 
 import transformer.resolveImportPath
 
