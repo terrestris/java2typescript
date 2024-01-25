@@ -1,11 +1,10 @@
-ThisBuild / version := "0.1.0-SNAPSHOT"
-
 ThisBuild / scalaVersion := "3.3.0"
+ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / organization := "de.terrestris"
 
 lazy val root = (project in file("."))
   .settings(
-    name := "java2typescript",
-    idePackagePrefix := Some("de.terrestris"),
+//    name := "java2typescript",
     libraryDependencies += "org.scalactic" %% "scalactic" % "3.2.16",
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.16" % "test",
     libraryDependencies += "com.github.javaparser" % "javaparser-core" % "3.25.4",

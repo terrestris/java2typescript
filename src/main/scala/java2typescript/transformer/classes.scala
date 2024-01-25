@@ -1,11 +1,10 @@
-package de.terrestris
 package java2typescript.transformer
 
 import com.github.javaparser.ast.NodeList
 import com.github.javaparser.ast.`type`.ClassOrInterfaceType
 import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, ConstructorDeclaration, FieldDeclaration, InitializerDeclaration, MethodDeclaration, Parameter}
-import de.terrestris.java2typescript.ast
-import de.terrestris.java2typescript.ast.SyntaxKind
+import java2typescript.ast
+import java2typescript.ast.SyntaxKind
 
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*

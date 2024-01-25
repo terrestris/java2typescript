@@ -1,4 +1,3 @@
-package de.terrestris
 package java2typescript
 
 import com.fasterxml.jackson.databind.json.JsonMapper
@@ -9,16 +8,22 @@ import java.nio.file.{Files, Path, Paths}
 import scala.io.Source
 import scala.jdk.CollectionConverters.*
 
-@main def main(configFile: String): Unit =
+@main def main(configFile: String, files: String*): Unit =
   val configPath = Paths.get(configFile).toAbsolutePath.normalize
 
   val config = parseConfig(readFile(configPath.toFile))
 
-  val sourcePath = configPath.getParent.resolve(config.source)
-  val targetPath = configPath.getParent.resolve(config.target)
+  val sourcePath = configPath.getParent.resolve(config.source).toAbsolutePath.normalize
+  val targetPath = configPath.getParent.resolve(config.target).toAbsolutePath.normalize
 
-  val (success, total) = walkDirectory(config, sourcePath, targetPath)
-  println(s"processed $success files of $total successfully")
+  if (files.isEmpty)
+    val (success, total) = walkDirectory(config, sourcePath, targetPath)
+    println(s"processed $success files of $total successfully")
+  else
+    for (file <- files)
+      val sourceFile = Paths.get(file).toAbsolutePath.normalize
+      val targetFile = targetPath.resolve(sourcePath.relativize(sourceFile))
+      handleFile(config, sourceFile, targetFile)
 
 def parseConfig(config: String): Config =
   val mapper = JsonMapper.builder()

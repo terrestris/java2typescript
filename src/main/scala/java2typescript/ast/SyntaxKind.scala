@@ -1,4 +1,3 @@
-package de.terrestris
 package java2typescript.ast
 
 import com.fasterxml.jackson.annotation.JsonValue

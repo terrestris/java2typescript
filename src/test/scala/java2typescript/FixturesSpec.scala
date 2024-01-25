@@ -1,4 +1,3 @@
-package de.terrestris
 package java2typescript
 
 import org.scalatest.Inspectors.forAll

@@ -1,4 +1,3 @@
-package de.terrestris
 package java2typescript.transformer
 
 import com.github.javaparser.ast.Modifier.Keyword
@@ -6,7 +5,7 @@ import com.github.javaparser.ast.`type`.*
 import com.github.javaparser.ast.body.*
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.{CompilationUnit, Modifier, NodeList}
-import de.terrestris.java2typescript.{Config, ast}
+import java2typescript.{Config, ast}
 
 import java.util.Optional
 import scala.jdk.CollectionConverters.*

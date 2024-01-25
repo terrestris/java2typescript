@@ -1,10 +1,9 @@
-package de.terrestris
 package java2typescript.parser
 
 import com.github.javaparser.StaticJavaParser
 import com.github.javaparser.ast.body.{ClassOrInterfaceDeclaration, MethodDeclaration}
-import de.terrestris.java2typescript.{Config, ast, transformer}
-import de.terrestris.java2typescript.transformer.Context
+import java2typescript.{Config, ast, transformer}
+import java2typescript.transformer.Context
 
 def parseMethodBody(code: String): List[ast.Node] = {
   val body = StaticJavaParser.parse(code)
@@ -19,5 +18,8 @@ def parseMethodBody(code: String): List[ast.Node] = {
 def parse(config: Config, code: String): List[ast.Node] = {
   val cu = StaticJavaParser.parse(code)
 
-  transformer.transformCompilationUnit(config, cu)
+  if (transformer.unsupported.checkUnsupported(code))
+    transformer.unsupported.transformCompilationUnit(cu)
+  else
+    transformer.transformCompilationUnit(config, cu)
 }

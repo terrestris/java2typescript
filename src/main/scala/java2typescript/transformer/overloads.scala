@@ -1,7 +1,6 @@
-package de.terrestris
 package java2typescript.transformer
 
-import de.terrestris.java2typescript.ast
+import java2typescript.ast
 
 import scala.collection.mutable
 

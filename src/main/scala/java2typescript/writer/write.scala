@@ -1,11 +1,10 @@
-package de.terrestris
 package java2typescript.writer
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import de.terrestris.java2typescript.ast
+import java2typescript.ast
 
 import java.io.{BufferedWriter, OutputStreamWriter}
 import scala.io.Source
