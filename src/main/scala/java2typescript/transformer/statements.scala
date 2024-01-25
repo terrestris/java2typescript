@@ -1,7 +1,7 @@
 package de.terrestris.java2typescript.transformer
 
 import com.github.javaparser.ast.expr.{NameExpr, ObjectCreationExpr}
-import com.github.javaparser.ast.stmt.{BlockStmt, BreakStmt, CatchClause, ContinueStmt, DoStmt, EmptyStmt, ExplicitConstructorInvocationStmt, ExpressionStmt, ForEachStmt, ForStmt, IfStmt, ReturnStmt, Statement, SwitchStmt, ThrowStmt, TryStmt, WhileStmt}
+import com.github.javaparser.ast.stmt.{AssertStmt, BlockStmt, BreakStmt, CatchClause, ContinueStmt, DoStmt, EmptyStmt, ExplicitConstructorInvocationStmt, ExpressionStmt, ForEachStmt, ForStmt, IfStmt, ReturnStmt, Statement, SwitchStmt, ThrowStmt, TryStmt, WhileStmt}
 import de.terrestris.java2typescript.ast
 
 import scala.jdk.CollectionConverters.*
@@ -66,7 +66,24 @@ def transformStatement(context: Context, stmt: Statement): ast.Statement =
       transformExpression(context, stmt.getCondition)
     )
     case stmt: EmptyStmt => ast.EmptyStatement()
+    case stmt: AssertStmt => transformAssertStatement(context, stmt)
     case _ => throw new Error("statement type not supported")
+
+def transformAssertStatement(context: Context, stmt: AssertStmt) =
+  ast.IfStatement(
+    ast.PrefixUnaryExpression(
+      ast.SyntaxKind.ExclamationToken,
+      ast.ParenthesizedExpression(transformExpression(context, stmt.getCheck)),
+    ),
+    ast.ThrowStatement(
+      ast.NewExpression(
+        ast.Identifier("Error"),
+        List(
+          ast.StringLiteral(stmt.getMessage.map { m => m.asStringLiteralExpr().asString() }.orElse("Assertion failed"))
+        )
+      )
+    )
+  )
 
 def transformCatchClauses(context: Context, clauses: List[CatchClause]): Option[ast.CatchClause] =
   if clauses.isEmpty then
