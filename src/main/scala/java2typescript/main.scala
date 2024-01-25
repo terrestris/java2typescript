@@ -1,4 +1,5 @@
-package de.terrestris.java2typescript
+package de.terrestris
+package java2typescript
 
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
@@ -39,6 +40,27 @@ def replace(text: String, replacements: List[ReplacementConfig]) =
     }
   }
 
+def changeFileExtension(originalPath: Path, newExtension: String): Path = {
+  // Get the file name without extension
+  val fileName: String = originalPath.getFileName.toString
+  val dotIndex: Int = fileName.lastIndexOf('.')
+
+  if (dotIndex != -1) {
+    // Remove the old extension
+    val baseName: String = fileName.substring(0, dotIndex)
+
+    // Append the new extension
+    val newFileName: String = s"$baseName.$newExtension"
+
+    // Create a new Path with the updated file name
+    originalPath.resolveSibling(newFileName)
+  } else {
+    // File has no extension, simply append the new extension
+    val newFileName: String = s"$fileName.$newExtension"
+    originalPath.resolveSibling(newFileName)
+  }
+}
+
 def handleFile(config: Config, source: Path, target: Path): Unit =
   println(source.toFile)
   target.getParent.toFile.mkdirs()
@@ -51,11 +73,11 @@ def handleFile(config: Config, source: Path, target: Path): Unit =
     writer.write(parseResult)
   catch
     case e: Error => throw new Error(s"Error writing typescript code for: $source", e)
-  val p = new java.io.PrintWriter(target.toFile)
+  val fileWriter = new java.io.PrintWriter(changeFileExtension(target, "ts").toFile)
   try
-    p.write(tsContent)
+    fileWriter.write(tsContent)
   finally
-    p.close()
+    fileWriter.close()
 
 def walkDirectory(config: Config, source: Path, target: Path): (Int, Int) =
   Files.newDirectoryStream(source)

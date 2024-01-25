@@ -26,6 +26,12 @@ Run Tests for Test-Driven-Development
 sbt test
 ```
 
+Run program
+
+```shell
+sbt "run config/j2ts-config.json"
+```
+
 Update TypeScript Version
 -------------------------
 

@@ -1,4 +1,5 @@
-package de.terrestris.java2typescript.ast
+package de.terrestris
+package java2typescript.ast
 
 trait Node {
   val kind: SyntaxKind

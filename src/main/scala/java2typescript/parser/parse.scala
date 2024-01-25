@@ -1,4 +1,5 @@
-package de.terrestris.java2typescript.parser
+package de.terrestris
+package java2typescript.parser
 
 import com.github.javaparser.StaticJavaParser
 import com.github.javaparser.ast.body.{ClassOrInterfaceDeclaration, MethodDeclaration}
