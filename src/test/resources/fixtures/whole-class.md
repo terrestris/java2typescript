@@ -2,10 +2,66 @@
 ## whole class
 ```json
 {
-  "imports": [
+  "customImportMappings": [
     {
-      "class": "java.util.PriorityQueue",
-      "location": "customLocation/PriorityQueue.ts"
+      "javaQualifiedName": "PriorityQueue",
+      "typescriptName": "PriorityQueue",
+      "fixedPath": "customLocation/PriorityQueue.ts"
+    },
+    {
+      "packageName": "org.locationtech.jts.algorithm",
+      "javaQualifiedName": "Centroid",
+      "typescriptName": "Centroid"
+    },
+    {
+      "packageName": "org.locationtech.jts.algorithm",
+      "javaQualifiedName": "InteriorPoint",
+      "typescriptName": "InteriorPoint"
+    },
+    {
+      "packageName": "org.locationtech.jts.algorithm.locate",
+      "javaQualifiedName": "IndexedPointInAreaLocator",
+      "typescriptName": "IndexedPointInAreaLocator"
+    },
+    {
+      "packageName": "org.locationtech.jts.geom",
+      "javaQualifiedName": "Coordinate",
+      "typescriptName": "Coordinate"
+    },
+    {
+      "packageName": "org.locationtech.jts.geom",
+      "javaQualifiedName": "Envelope",
+      "typescriptName": "Envelope"
+    },
+    {
+      "packageName": "org.locationtech.jts.geom",
+      "javaQualifiedName": "Geometry",
+      "typescriptName": "Geometry"
+    },
+    {
+      "packageName": "org.locationtech.jts.geom",
+      "javaQualifiedName": "GeometryFactory",
+      "typescriptName": "GeometryFactory"
+    },
+    {
+      "packageName": "org.locationtech.jts.geom",
+      "javaQualifiedName": "LineString",
+      "typescriptName": "LineString"
+    },
+    {
+      "packageName": "org.locationtech.jts.geom",
+      "javaQualifiedName": "Location",
+      "typescriptName": "Location"
+    },
+    {
+      "packageName": "org.locationtech.jts.geom",
+      "javaQualifiedName": "Point",
+      "typescriptName": "Point"
+    },
+    {
+      "packageName": "org.locationtech.jts.operation.distance",
+      "javaQualifiedName": "IndexedFacetDistance",
+      "typescriptName": "IndexedFacetDistance"
     }
   ]
 }
@@ -418,18 +474,16 @@ public class LargestEmptyCircle {
 }
 ```
 ```typescript
-import { PriorityQueue } from "customLocation/PriorityQueue.ts";
-import { Centroid } from "../Centroid.ts";
-import { InteriorPoint } from "../InteriorPoint.ts";
-import { IndexedPointInAreaLocator } from "../locate/IndexedPointInAreaLocator.ts";
-import { Coordinate } from "../../geom/Coordinate.ts";
-import { Envelope } from "../../geom/Envelope.ts";
 import { Geometry } from "../../geom/Geometry.ts";
-import { GeometryFactory } from "../../geom/GeometryFactory.ts";
-import { LineString } from "../../geom/LineString.ts";
-import { Location } from "../../geom/Location.ts";
 import { Point } from "../../geom/Point.ts";
+import { LineString } from "../../geom/LineString.ts";
+import { GeometryFactory } from "../../geom/GeometryFactory.ts";
+import { IndexedPointInAreaLocator } from "../locate/IndexedPointInAreaLocator.ts";
 import { IndexedFacetDistance } from "../../operation/distance/IndexedFacetDistance.ts";
+import { Coordinate } from "../../geom/Coordinate.ts";
+import { Location } from "../../geom/Location.ts";
+import { PriorityQueue } from "customLocation/PriorityQueue.ts";
+import { Envelope } from "../../geom/Envelope.ts";
 export class LargestEmptyCircle {
     private obstacles: Geometry;
     private tolerance: number;

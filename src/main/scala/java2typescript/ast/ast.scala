@@ -23,7 +23,7 @@ case class Identifier(escapedText: String) extends Expression {
 
 case class Parameter(
   name: Identifier,
-  `type`: Type,
+  `type`: Option[Type],
   modifiers: List[Modifier] = List(),
   dotDotDotToken: Option[DotDotDotToken] = None
 ) extends Node {
@@ -49,7 +49,7 @@ case class ClassDeclaration(
 
 case class VariableDeclaration(
   name: Identifier,
-  `type`: Type,
+  `type`: Option[Type],
   initializer: Option[Expression] = None
 ) extends Node {
   val kind: SyntaxKind = SyntaxKind.VariableDeclaration
@@ -135,7 +135,7 @@ case class DefaultClause(
 
 case class PropertyDeclaration(
   name: Identifier,
-  `type`: Type,
+  `type`: Option[Type],
   initializer: Option[Expression],
   modifiers: List[Modifier] = List()
 ) extends Member {
@@ -144,7 +144,7 @@ case class PropertyDeclaration(
 
 case class MethodDeclaration(
   name: Identifier,
-  `type`: Type,
+  `type`: Option[Type],
   parameters: List[Parameter] = List(),
   typeParameters: List[Type] = List(),
   body: Option[Block] = None,

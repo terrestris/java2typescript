@@ -2,6 +2,8 @@ package java2typescript
 
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import java2typescript.analyseExports.analyseExports
+import java2typescript.transformer.ProjectContext
 
 import java.io.File
 import java.nio.file.{Files, Path, Paths}
@@ -16,14 +18,49 @@ import scala.jdk.CollectionConverters.*
   val sourcePath = configPath.getParent.resolve(config.source).toAbsolutePath.normalize
   val targetPath = configPath.getParent.resolve(config.target).toAbsolutePath.normalize
 
-  if (files.isEmpty)
-    val (success, total) = walkDirectory(config, sourcePath, targetPath)
-    println(s"processed $success files of $total successfully")
+  println("gather files")
+
+  val gatheredFiles = if (files.isEmpty)
+    gatherFiles(config, sourcePath)
   else
-    for (file <- files)
-      val sourceFile = Paths.get(file).toAbsolutePath.normalize
-      val targetFile = targetPath.resolve(sourcePath.relativize(sourceFile))
-      handleFile(config, sourceFile, targetFile)
+    files.map {
+      file => Paths.get(file).toAbsolutePath.normalize
+    }.toList
+
+  val amount = gatheredFiles.length
+  println(s"gathered $amount files")
+
+  println("read files")
+  val contents = readFiles(config, gatheredFiles)
+
+  println("analyse exports")
+  val importMappings = contents.flatMap {
+    (file, content) => analyseExports(content)
+  }
+  
+  val context = ProjectContext(config, importMappings)
+
+  println("parse files")
+  val parseResults = contents.map {
+    (file, content) => (file, parser.parse(context, content))
+  }
+
+  println("create typescript code")
+  val tsContents = parseResults.map {
+    (file, parseResult) => (file, writer.write(parseResult))
+  }
+
+  println("write files")
+  tsContents.foreach {
+    (file, tsContent) => {
+      val target = changeFileExtension(targetPath.resolve(sourcePath.relativize(file)), "ts")
+      val fileWriter = new java.io.PrintWriter(target.toFile)
+      try
+        fileWriter.write(tsContent)
+      finally
+        fileWriter.close()
+    }
+  }
 
 def parseConfig(config: String): Config =
   val mapper = JsonMapper.builder()
@@ -66,50 +103,29 @@ def changeFileExtension(originalPath: Path, newExtension: String): Path = {
   }
 }
 
-def handleFile(config: Config, source: Path, target: Path): Unit =
-  println(source.toFile)
-  target.getParent.toFile.mkdirs()
-  val javaContent = replace(readFile(source.toFile), config.replacements)
-  val parseResult = try
-    parser.parse(config, javaContent)
-  catch
-    case e: Error => throw new Error(s"Error transforming java code to typescript ast from: $source", e)
-  val tsContent = try
-    writer.write(parseResult)
-  catch
-    case e: Error => throw new Error(s"Error writing typescript code for: $source", e)
-  val fileWriter = new java.io.PrintWriter(changeFileExtension(target, "ts").toFile)
-  try
-    fileWriter.write(tsContent)
-  finally
-    fileWriter.close()
-
-def walkDirectory(config: Config, source: Path, target: Path): (Int, Int) =
+def gatherFiles(config: Config, source: Path): List[Path] =
   Files.newDirectoryStream(source)
     .asScala
     .toList
-    .map {
-      sourceFile => {
-        val targetFile = target.resolve(source.relativize(sourceFile))
-        val fileName = sourceFile.toFile.toString
-        if (sourceFile.toFile.isDirectory)
-          walkDirectory(config, sourceFile, targetFile)
+    .flatMap {
+      filePath => {
+        val file = filePath.toFile
+        val fileName = file.toString
+        if (file.isDirectory)
+          gatherFiles(config, filePath)
         else if (config.skipFiles.exists(f => fileName.endsWith(f)))
-          println("INFO: File skipped.")
-          (0, 1)
-        else if (sourceFile.toFile.toString.endsWith(".java"))
-          try
-            handleFile(config, sourceFile, targetFile)
-            (1, 1)
-          catch
-            case e: Error =>
-              println(e)
-              e.printStackTrace()
-              (0, 1)
+          println(s"SKIPPED: $fileName")
+          List()
+        else if (fileName.endsWith(".java"))
+          println(s"GATHERED: $fileName")
+          List(filePath)
         else
-          (0, 0)
+          List()
       }
     }
-    .reduce {
-      (a, b) => (a._1 + b._1, a._2 + b._2)
-    }
+
+def readFiles(config: Config, files: List[Path]): List[(Path, String)] =
+  files.map {
+    file =>
+      (file, replace(readFile(file.toFile), config.replacements))
+  }

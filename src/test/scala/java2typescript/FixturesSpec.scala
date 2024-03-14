@@ -8,7 +8,10 @@ import java.io.File
 import scala.collection.mutable.ListBuffer
 import scala.collection.BufferedIterator
 import scala.io.Source
+
+import java2typescript.analyseExports.analyseExports
 import java2typescript.parser.{parse, parseMethodBody}
+import java2typescript.transformer.ProjectContext
 import java2typescript.writer.write
 
 class Options(
@@ -19,8 +22,8 @@ class Options(
 
 class Fixture(
   val title: String,
-  val javaCode: String,
-  val typeScriptCode: String,
+  val javaCodes: List[String],
+  val typeScriptCodes: List[String],
   val options: Options,
   val config: Option[Config]
 )
@@ -35,6 +38,8 @@ def dropWhile(it: BufferedIterator[String], condition: String => Boolean): Unit 
     it.next()
 
 def getCodeBlock(it: BufferedIterator[String], syntax: String): Option[String] = {
+  if (!it.hasNext)
+    return None
   dropWhile(it, l => l.isEmpty)
   if (!it.head.startsWith(s"```$syntax"))
     return None
@@ -70,13 +75,24 @@ def getOptions(it: BufferedIterator[String]): Options = {
   options
 }
 
+def loop[T](func: () => Option[T]): List[T] = {
+  func() match {
+    case res: Some[T] =>
+      List(res.get) ::: loop(func)
+    case None =>
+      List()
+  }
+}
+
 def getFixture(it: BufferedIterator[String]): Fixture = {
   val title = getPrefixed(it, "## ")
   val options = getOptions(it)
   val config = getCodeBlock(it, "json").map(parseConfig)
-  val javaCode = getCodeBlock(it, "java").get
-  val typescriptCode = getCodeBlock(it, "typescript").get
-  Fixture(title, javaCode, typescriptCode, options, config)
+  val javaCodes = loop(() => getCodeBlock(it, "java"))
+  val typescriptCodes = loop(() => getCodeBlock(it, "typescript"))
+  if (javaCodes.length != typescriptCodes.length)
+    throw new Error("Amount of java code blocks does not match amount of typescript code blocks")
+  Fixture(title, javaCodes, typescriptCodes, options, config)
 }
 
 def getFixtureCollection(it: BufferedIterator[String]): FixtureCollection = {
@@ -119,13 +135,29 @@ class FixturesSpec extends AnyFunSpec with Matchers {
         forAll(collection.fixtures) {
           fix => if (!fix.options.skip)
             it(fix.title) {
+              val config = fix.config.getOrElse(Config())
               val parsed = if (fix.options.methodBody)
-                parseMethodBody(wrapStatementJava(fix.javaCode))
+                if (fix.javaCodes.length != 1)
+                  throw new Error("Cannot parse more then one method body")
+                val parsed = parseMethodBody(wrapStatementJava(fix.javaCodes.head))
+                val written = write(parsed)
+                written should be(fix.typeScriptCodes.head)
               else
-                parse(fix.config.getOrElse(Config()), fix.javaCode)
+                val importMappings = fix.javaCodes.flatMap(analyseExports) ::: config.customImportMappings
 
-              val written = write(parsed)
-              written should be(fix.typeScriptCode)
+                val context = ProjectContext(config, importMappings)
+
+                val parseResults = fix.javaCodes.map {
+                  code => parse(context, code)
+                }
+
+                val writeResults = parseResults.map(write)
+
+                writeResults.zip(fix.typeScriptCodes).foreach {
+                  (written, expected) =>
+                    written should be(expected)
+                }
+
               if (fix.options.debug)
                 throw new Error("Fixture has debug option enabled")
             }

@@ -3,7 +3,9 @@ package java2typescript.parser
 import com.github.javaparser.StaticJavaParser
 import com.github.javaparser.ast.body.{ClassOrInterfaceDeclaration, MethodDeclaration}
 import java2typescript.{Config, ast, transformer}
-import java2typescript.transformer.Context
+import java2typescript.transformer.{ClassContext, FileContext, ParameterContext, ProjectContext}
+
+import scala.collection.mutable.ListBuffer
 
 def parseMethodBody(code: String): List[ast.Node] = {
   val body = StaticJavaParser.parse(code)
@@ -11,15 +13,15 @@ def parseMethodBody(code: String): List[ast.Node] = {
     .orElseThrow()
     .getBody
     .orElseThrow()
-
-  transformer.transformBlockStatement(Context(ClassOrInterfaceDeclaration()), body).statements
+  val methodContext = ParameterContext(ClassContext(FileContext(ProjectContext(Config(), List()), None), ClassOrInterfaceDeclaration()), ListBuffer())
+  transformer.transformBlockStatement(methodContext, body).statements
 }
 
-def parse(config: Config, code: String): List[ast.Node] = {
+def parse(context: ProjectContext, code: String): List[ast.Node] = {
   val cu = StaticJavaParser.parse(code)
 
   if (transformer.unsupported.checkUnsupported(code))
-    transformer.unsupported.transformCompilationUnit(cu)
+    transformer.unsupported.transformCompilationUnit(context, cu)
   else
-    transformer.transformCompilationUnit(config, cu)
+    transformer.transformCompilationUnit(context, cu)
 }

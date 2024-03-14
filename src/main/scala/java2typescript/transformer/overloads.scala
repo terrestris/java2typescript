@@ -42,7 +42,7 @@ def createArgsParameter =
   List(ast.Parameter(
     name = ast.Identifier("args"),
     dotDotDotToken = Some(ast.DotDotDotToken()),
-    `type` = ast.ArrayType(ast.AnyKeyword())
+    `type` = Some(ast.ArrayType(ast.AnyKeyword()))
   ))
 
 def createOverloadFunction(constructors: List[ast.Constructor]): ast.Constructor =
@@ -93,7 +93,7 @@ def createSignatureIfBlock(parameters: List[ast.Parameter], body: ast.Block): as
           createParameterTypeCheck(ast.ElementAccessExpression(
             ast.Identifier("args"),
             ast.NumericLiteral(index.toString)
-          ), param.`type`)
+          ), param.`type`.get)
       }
     ),
     ast.Block(

@@ -1,15 +1,15 @@
 package java2typescript.transformer
 
-import com.github.javaparser.ast.NodeList
+import com.github.javaparser.ast.{Modifier, NodeList}
 import com.github.javaparser.ast.`type`.ClassOrInterfaceType
-import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, ConstructorDeclaration, FieldDeclaration, InitializerDeclaration, MethodDeclaration, Parameter}
+import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, ConstructorDeclaration, EnumDeclaration, FieldDeclaration, InitializerDeclaration, MethodDeclaration, Parameter}
 import java2typescript.ast
-import java2typescript.ast.SyntaxKind
 
+import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
-def transformHeritage(nodes: NodeList[ClassOrInterfaceType], token: SyntaxKind): Option[ast.HeritageClause] =
+def transformHeritage(context: FileContext, nodes: NodeList[ClassOrInterfaceType], token: ast.SyntaxKind): Option[ast.HeritageClause] =
   val implementedTypes = nodes.asScala.toList
   if (implementedTypes.nonEmpty)
     Some(
@@ -20,7 +20,10 @@ def transformHeritage(nodes: NodeList[ClassOrInterfaceType], token: SyntaxKind):
               transformName(t.getName),
               t.getTypeArguments.toScala.toList
                 .flatMap(nl => nl.asScala.toList)
-                .map(transformType)
+                .map(transformType.curried(context))
+                .map {
+                  t => t.get
+                }
             )
         },
         token
@@ -29,58 +32,55 @@ def transformHeritage(nodes: NodeList[ClassOrInterfaceType], token: SyntaxKind):
   else
     None
 
+def getModifiers(modifiers: List[Modifier], additionalModifiers: List[ast.Modifier]) = {
+  (additionalModifiers ::: modifiers.flatMap(transformModifier)).filter {
+    m =>
+      !List(
+        ast.SyntaxKind.PublicKeyword,
+        ast.SyntaxKind.ProtectedKeyword,
+        ast.SyntaxKind.PrivateKeyword,
+        ast.SyntaxKind.DefaultKeyword,
+        ast.SyntaxKind.StaticKeyword
+      ).contains(m.kind)
+  }
+}
 def transformClassOrInterfaceDeclaration(
+  context: FileContext|ClassContext,
   decl: ClassOrInterfaceDeclaration,
   additionalModifiers: List[ast.Modifier] = List(),
   dropModifiers: Boolean = false
 ): List[ast.Statement] =
   val className = decl.getName.getIdentifier
-  val context = Context(decl)
-  val contextsAndMembers = decl.getMembers.asScala
-    .map(transformMember.curried(context))
+  val classContext = context match
+    case c: FileContext => ClassContext(c, decl)
+    case c: ClassContext => ClassContext(c, decl, Option(c))
+  val members = decl.getMembers.asScala
+    .flatMap(transformMember.curried(classContext))
 
-  val membersVal = contextsAndMembers.collect {
-    case Right(ms) => ms
-  }.flatten
-
-  val extractedStatements = contextsAndMembers
-    .collect {
-      case Left(c) => c.extractedStatements
-    }
-    .flatMap {
-      ics => ics
-    }
+  val extractedStatements = classContext
+    .extractedStatements
     .toList
 
-  val modifiersVal = (additionalModifiers ::: decl.getModifiers.asScala.toList.flatMap(transformModifier)).filter {
-    m =>
-      !List(
-        SyntaxKind.PublicKeyword,
-        SyntaxKind.ProtectedKeyword,
-        SyntaxKind.PrivateKeyword,
-        SyntaxKind.DefaultKeyword,
-        SyntaxKind.StaticKeyword
-      ).contains(m.kind)
-  }
+  val modifiersVal = getModifiers(decl.getModifiers.asScala.toList, additionalModifiers)
 
   if (decl.isInterface)
     ast.InterfaceDeclaration(
       transformName(decl.getName),
-      members = membersVal.toList,
+      members = members.toList,
       modifiers = modifiersVal,
-      heritageClauses = transformHeritage(decl.getExtendedTypes, SyntaxKind.ExtendsKeyword).toList
-        ::: transformHeritage(decl.getImplementedTypes, SyntaxKind.ImplementsKeyword).toList
+      heritageClauses = transformHeritage(context, decl.getExtendedTypes, ast.SyntaxKind.ExtendsKeyword).toList
+        ::: transformHeritage(context, decl.getImplementedTypes, ast.SyntaxKind.ImplementsKeyword).toList
     )
       ::
       extractedStatements
   else {
-    val properties = membersVal
+    val properties = members
       .collect {
         case p: ast.PropertyDeclaration => p
       }
       .toList
 
-    val constructors = membersVal
+    val constructors = members
       .collect {
         case c: ast.Constructor => c
       }
@@ -92,7 +92,7 @@ def transformClassOrInterfaceDeclaration(
       else
         constructors
 
-    val methodsWithOverloads = groupMethodsByName(membersVal
+    val methodsWithOverloads = groupMethodsByName(members
       .collect {
         case m: ast.MethodDeclaration => m
       }.toList)
@@ -108,36 +108,60 @@ def transformClassOrInterfaceDeclaration(
       transformName(decl.getName),
       members = properties ::: constructorsWithOverloads ::: methodsWithOverloads,
       modifiers = modifiersVal,
-      heritageClauses = transformHeritage(decl.getExtendedTypes, SyntaxKind.ExtendsKeyword).toList
-        ::: transformHeritage(decl.getImplementedTypes, SyntaxKind.ImplementsKeyword).toList
+      heritageClauses = transformHeritage(context, decl.getExtendedTypes, ast.SyntaxKind.ExtendsKeyword).toList
+        ::: transformHeritage(context, decl.getImplementedTypes, ast.SyntaxKind.ImplementsKeyword).toList
     )
       ::
       extractedStatements
   }
 
-def transformMember(context: Context, member: BodyDeclaration[?]): Either[Context, List[ast.Member]] =
+def transformEnumDeclaration(
+  context: FileContext|ClassContext,
+  decl: EnumDeclaration,
+  additionalModifiers: List[ast.Modifier] = List()
+) =
+  val entries = decl.getEntries.asScala.zipWithIndex.map {
+    (entry, index) =>
+      ast.PropertyDeclaration(
+        transformName(entry.getName),
+        None,
+        Some(ast.NumericLiteral(index.toString)),
+        List(ast.PublicKeyword(), ast.StaticKeyword())
+      )
+  }
+
+  val modifiersVal = getModifiers(decl.getModifiers.asScala.toList, additionalModifiers)
+
+  ast.ClassDeclaration(
+    transformName(decl.getName),
+    members = entries.toList,
+    modifiers = modifiersVal
+  )
+
+def transformMember(context: ClassContext, member: BodyDeclaration[?]): List[ast.Member] =
   member match
     case member: FieldDeclaration =>
-      Right(
-        member.getVariables.asScala.toList.map(declarator =>
-          transformDeclaratorToProperty(context, declarator, member.getModifiers.asScala.toList)
-        )
+      member.getVariables.asScala.toList.map(declarator =>
+        transformDeclaratorToProperty(context, declarator, member.getModifiers.asScala.toList)
       )
     case member: MethodDeclaration =>
-      Right(List(transformMethodDeclaration(context, member)))
+      List(transformMethodDeclaration(context, member))
     case member: ConstructorDeclaration =>
-      Right(List(transformConstructorDeclaration(context, member)))
+      List(transformConstructorDeclaration(context, member))
     case member: ClassOrInterfaceDeclaration =>
-      Left(context.addExtractedStatements(transformClassOrInterfaceDeclaration(member)))
+      context.addExtractedStatements(transformClassOrInterfaceDeclaration(context, member))
+      List()
     case member: InitializerDeclaration =>
       if (!member.isStatic) {
         throw new Error("non static initializers as class members are not supported")
       }
-      Left(context.addExtractedStatements(transformBlockStatement(context, member.getBody).statements))
+      val parameterContext = ParameterContext(context, ListBuffer())
+      context.addExtractedStatements(transformBlockStatement(parameterContext, member.getBody).statements)
+      List()
 
-def transformConstructorDeclaration(context: Context, declaration: ConstructorDeclaration) =
-  val methodParameters = declaration.getParameters.asScala.map(transformParameter).toList
-  val methodContext = context.addParameters(methodParameters)
+def transformConstructorDeclaration(context: ClassContext, declaration: ConstructorDeclaration) =
+  val methodParameters = declaration.getParameters.asScala.map(transformParameter.curried(context)).toList
+  val methodContext = ParameterContext(context, methodParameters.toBuffer)
   val methodBody = ast.Block(
     declaration.getBody.getStatements.asScala.map(transformStatement.curried(methodContext)).toList
   )
@@ -149,9 +173,9 @@ def transformConstructorDeclaration(context: Context, declaration: ConstructorDe
     modifiers = methodModifiers
   )
 
-def transformMethodDeclaration(context: Context, decl: MethodDeclaration) =
-  val methodParameters = decl.getParameters.asScala.map(transformParameter).toList
-  val methodContext = context.addParameters(methodParameters)
+def transformMethodDeclaration(context: ClassContext, decl: MethodDeclaration) =
+  val methodParameters = decl.getParameters.asScala.map(transformParameter.curried(context)).toList
+  val methodContext = ParameterContext(context, methodParameters.toBuffer)
   val methodBody = decl.getBody.toScala.map(body =>
     ast.Block(body.getStatements.asScala.map(transformStatement.curried(methodContext)).toList)
   )
@@ -159,12 +183,14 @@ def transformMethodDeclaration(context: Context, decl: MethodDeclaration) =
 
   ast.MethodDeclaration(
     transformName(decl.getName),
-    `type` = transformType(decl.getType),
-    typeParameters = decl.getTypeParameters.asScala.map(transformType).toList,
+    `type` = transformType(context, decl.getType),
+    typeParameters = decl.getTypeParameters.asScala.map(transformType.curried(context)).map {
+      t => t.get
+    }.toList,
     parameters = methodParameters,
     body = methodBody,
     modifiers = methodModifiers
   )
 
-def transformParameter(param: Parameter) =
-  ast.Parameter(transformName(param.getName), transformType(param.getType))
+def transformParameter(context: FileContext, param: Parameter) =
+  ast.Parameter(transformName(param.getName), transformType(context, param.getType))
