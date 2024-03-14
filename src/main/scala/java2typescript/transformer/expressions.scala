@@ -9,7 +9,7 @@ import java2typescript.ast.{ConditionalExpression, SyntaxKind}
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
-def transformExpression(context: Context, expr: Expression): ast.Expression =
+def transformExpression(context: ParameterContext, expr: Expression): ast.Expression =
   expr match
     case expr: VariableDeclarationExpr => transformVariableDeclarationExpression(context, expr)
     case expr: LiteralExpr => transformLiteral(expr)
@@ -40,20 +40,20 @@ def transformExpression(context: Context, expr: Expression): ast.Expression =
     )
     case _ => throw new Error("not supported")
 
-def transformVariableDeclarationExpression(context: Context, expr: VariableDeclarationExpr) =
+def transformVariableDeclarationExpression(context: ParameterContext, expr: VariableDeclarationExpr) =
   ast.VariableDeclarationList(
     expr.getVariables.asScala.map(transformDeclaratorToVariable.curried(context)).toList
   )
 
-def transformConditionalExpression(context: Context, expr: ConditionalExpr) =
+def transformConditionalExpression(context: ParameterContext, expr: ConditionalExpr) =
   ast.ConditionalExpression(
     transformExpression(context, expr.getCondition),
     transformExpression(context, expr.getThenExpr),
     transformExpression(context, expr.getElseExpr)
   )
 
-def transformCastExpression(context: Context, expr: CastExpr) =
-  val `type` = transformType(expr.getType)
+def transformCastExpression(context: ParameterContext, expr: CastExpr) =
+  val `type` = transformType(context, expr.getType).get
   val castExpression = transformExpression(context, expr.getExpression)
   if (`type`.kind == SyntaxKind.NumberKeyword)
     ast.CallExpression(
@@ -69,20 +69,20 @@ def transformCastExpression(context: Context, expr: CastExpr) =
       `type`
     )
 
-def transformArrayAccessExpression(context: Context, expr: ArrayAccessExpr) =
+def transformArrayAccessExpression(context: ParameterContext, expr: ArrayAccessExpr) =
   ast.ElementAccessExpression(
     transformExpression(context, expr.getName),
     transformExpression(context, expr.getIndex)
   )
 
-def transformArrayCreationExpression(context: Context, expr: ArrayCreationExpr) =
+def transformArrayCreationExpression(context: ParameterContext, expr: ArrayCreationExpr) =
   ast.ArrayLiteralExpression(
     expr.getInitializer.toScala.toList
       .flatMap(ie => ie.getValues.asScala)
       .map(transformExpression.curried(context))
   )
 
-def transformMethodCall(context: Context, expr: MethodCallExpr) =
+def transformMethodCall(context: ParameterContext, expr: MethodCallExpr) =
   val scope = expr.getScope.toScala
   val arguments = expr.getArguments.asScala.map(transformExpression.curried(context)).toList
   if (scope.isEmpty)
@@ -91,6 +91,9 @@ def transformMethodCall(context: Context, expr: MethodCallExpr) =
       arguments
     )
   else
+    if (scope.get.isNameExpr)
+      val name = scope.get.asNameExpr.getName
+      context.addImportIfNeeded(name)
     ast.CallExpression(
       ast.PropertyAccessExpression(
         transformExpression(context, scope.get),
@@ -99,14 +102,14 @@ def transformMethodCall(context: Context, expr: MethodCallExpr) =
       arguments
     )
 
-def transformBinaryExpression(context: Context, expr: BinaryExpr): ast.BinaryExpression =
+def transformBinaryExpression(context: ParameterContext, expr: BinaryExpr): ast.BinaryExpression =
   ast.BinaryExpression(
     transformExpression(context, expr.getLeft),
     transformExpression(context, expr.getRight),
     transformOperator(expr.getOperator.name)
   )
 
-def transformUnaryExpression(context: Context, expr: UnaryExpr): ast.PrefixUnaryExpression|ast.PostfixUnaryExpression =
+def transformUnaryExpression(context: ParameterContext, expr: UnaryExpr): ast.PrefixUnaryExpression|ast.PostfixUnaryExpression =
   if (expr.getOperator.isPrefix)
     ast.PrefixUnaryExpression(
       transformOperator(expr.getOperator.name).kind,
@@ -118,23 +121,27 @@ def transformUnaryExpression(context: Context, expr: UnaryExpr): ast.PrefixUnary
       transformExpression(context, expr.getExpression)
     )
 
-def transformObjectCreationExpression(context: Context, expr: ObjectCreationExpr) =
+def transformObjectCreationExpression(context: ParameterContext, expr: ObjectCreationExpr) =
+  context.addImportIfNeeded(expr.getType.getName)
   ast.NewExpression(
     ast.Identifier(expr.getType.getName.getIdentifier),
     transformArguments(context, expr.getArguments),
-    transformTypeArguments(expr.getTypeArguments)
+    transformTypeArguments(context, expr.getTypeArguments)
   )
 
-def transformArguments(context: Context, expressions: NodeList[Expression]) =
+def transformArguments(context: ParameterContext, expressions: NodeList[Expression]) =
   expressions.asScala.map(transformExpression.curried(context)).toList
 
-def transformFieldAccessExpression(context: Context, expr: FieldAccessExpr) =
+def transformFieldAccessExpression(context: ParameterContext, expr: FieldAccessExpr) =
+  if (expr.getScope.isNameExpr)
+    val name = expr.getScope.asNameExpr.getName
+    context.addImportIfNeeded(name)
   ast.PropertyAccessExpression(
     transformExpression(context, expr.getScope),
     transformName(expr.getName)
   )
 
-def transformAssignExpression(context: Context, expr: AssignExpr) =
+def transformAssignExpression(context: ParameterContext, expr: AssignExpr) =
   ast.BinaryExpression(
     transformExpression(context, expr.getTarget),
     transformExpression(context, expr.getValue),

@@ -1,19 +1,16 @@
 package java2typescript
 
-case class ImportLocation(
-  `class`: String,
-  location: String
-)
+import java2typescript.analyseExports.ImportMapping
 
 case class ReplacementConfig(
   pattern: String,
   replacement: String
 )
 
-case class Config(
-  source: String = "",
-  target: String = "",
-  imports: Option[List[ImportLocation]] = None,
-  replacements: List[ReplacementConfig] = List(),
-  skipFiles: List[String] = List()
+class Config(
+  val source: String = "",
+  val target: String = "",
+  val replacements: List[ReplacementConfig] = List(),
+  val skipFiles: List[String] = List(),
+  val customImportMappings: List[ImportMapping] = List()
 )
