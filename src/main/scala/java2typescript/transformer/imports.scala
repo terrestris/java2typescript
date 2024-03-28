@@ -1,27 +1,36 @@
 package java2typescript.transformer
 
 import com.github.javaparser.ast.{ImportDeclaration, PackageDeclaration}
-import java2typescript.analyseExports.ImportMapping
+import java2typescript.analyseExports.Import
 import java2typescript.{Config, ast}
 
 import java.util.Optional
 
-def transformImport(packageName: Option[String], importMapping: ImportMapping): ast.ImportDeclaration = {
+def createImports(context: FileContext): List[ast.ImportDeclaration] =
+  val packagePath = context.packageName.getOrElse("").split("\\.")
+
+  context.neededImports.groupBy {
+      im =>
+        im.fixedPath.getOrElse {
+          val importPath = im.packageName.getOrElse("").split("\\.")
+          val location = resolveImportPath(packagePath, importPath)
+          s"$location/${im.getTypescriptFile}"
+        }
+    }.map {
+      im => transformImports(context.packageName, im._1, im._2.toList)
+    }.toList
+
+def transformImports(packageName: Option[String], path: String, importMappings: List[Import]): ast.ImportDeclaration = {
   val packagePath = packageName.getOrElse("").split("\\.")
-  val path = importMapping.fixedPath.getOrElse {
-    val importPath = importMapping.packageName.getOrElse("").split("\\.")
-    val location = resolveImportPath(packagePath, importPath)
-    s"$location/${importMapping.typescriptName}.ts"
-  }
 
   ast.ImportDeclaration(
     ast.ImportClause(
       ast.NamedImports(
-        List(
-          ast.ImportSpecifier(
-            ast.Identifier(importMapping.typescriptName)
+        importMappings.map {
+          im => ast.ImportSpecifier(
+            ast.Identifier(im.getTypescriptImport)
           )
-        )
+        }
       )
     ),
     ast.StringLiteral(

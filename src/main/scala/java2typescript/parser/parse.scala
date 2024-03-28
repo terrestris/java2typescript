@@ -13,7 +13,7 @@ def parseMethodBody(code: String): List[ast.Node] = {
     .orElseThrow()
     .getBody
     .orElseThrow()
-  val methodContext = ParameterContext(ClassContext(FileContext(ProjectContext(Config(), List()), None), ClassOrInterfaceDeclaration()), ListBuffer())
+  val methodContext = ParameterContext(ClassContext(FileContext(ProjectContext(Config(), List()), None), None), ListBuffer())
   transformer.transformBlockStatement(methodContext, body).statements
 }
 
