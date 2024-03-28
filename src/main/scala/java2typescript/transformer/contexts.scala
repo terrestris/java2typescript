@@ -1,10 +1,12 @@
 package java2typescript.transformer
 
-import com.github.javaparser.ast.body.{ClassOrInterfaceDeclaration, FieldDeclaration, MethodDeclaration}
+import com.github.javaparser.ast.`type`.ClassOrInterfaceType
+import com.github.javaparser.ast.body.{ClassOrInterfaceDeclaration, EnumDeclaration, FieldDeclaration, MethodDeclaration}
 import com.github.javaparser.ast.expr.SimpleName
-import java2typescript.analyseExports.ImportMapping
+import java2typescript.analyseExports.Import
 import java2typescript.{Config, ast}
 
+import scala.util.matching.Regex
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.*
@@ -12,45 +14,57 @@ import scala.jdk.OptionConverters.*
 
 class ProjectContext(
   val config: Config,
-  val importMappings: List[ImportMapping]
+  val importMappings: List[Import]
 ) {
-  def isImportableName(name: SimpleName): Boolean =
+  def isImportable(scope: Option[String], name: String): Boolean =
     importMappings.exists {
-      im => im.javaQualifiedName == name.asString()
+      im => im.javaScope == scope && im.javaName == name
     }
 }
 
 class FileContext(
   val projectContext: ProjectContext,
   val packageName: Option[String],
-  val extractedExport: mutable.Buffer[ImportMapping] = ListBuffer(),
-  val neededImports: mutable.Buffer[ImportMapping] = ListBuffer()
+  val extractedExport: mutable.Buffer[Import] = ListBuffer(),
+  val neededImports: mutable.Buffer[Import] = ListBuffer()
 ) extends ProjectContext(projectContext.config, projectContext.importMappings) {
-  def addExtractedExport(imp: ImportMapping): Unit =
+  def addExtractedExport(imp: Import): Unit =
     extractedExport += imp
-  def addImportIfNeeded(name: SimpleName): Unit =
-    if (isImportableName(name))
+  def addImportIfNeeded(scope: Option[String], name: String): Unit =
+    if (isImportable(scope, name))
       val exists = neededImports.exists {
-        im => im.javaQualifiedName == name.asString()
+        im => im.javaScope == scope && im.javaName == name
       }
       if (!exists) {
-        neededImports += importMappings.find {
-          im => im.javaQualifiedName == name.asString()
-        }.get
+        neededImports += getImport(scope, name).get
       }
+    else if (scope.isDefined) {
+      val splitted = scope.get.split('.')
+      if (splitted.length == 1)
+        addImportIfNeeded(None, splitted(0))
+      else
+        addImportIfNeeded(Some(splitted.dropRight(1).mkString(".")), splitted(-1))
+    }
+  def getImport(scope: Option[String], name: String): Option[Import] =
+    importMappings.find {
+      im => im.javaScope == scope && im.javaName == name
+    }
 }
 
 class ClassContext(
   val fileContext: FileContext,
-  val classOrInterface: ClassOrInterfaceDeclaration,
+  val classOrInterface: Option[ClassOrInterfaceDeclaration|EnumDeclaration],
   val parentClassContext: Option[ClassContext] = Option.empty,
   val extractedStatements: mutable.Buffer[ast.Statement] = ListBuffer(),
 ) extends FileContext(fileContext.projectContext, fileContext.packageName, fileContext.extractedExport, fileContext.neededImports) {
   def addExtractedStatements(sts: List[ast.Statement]): Unit =
     extractedStatements.appendAll(sts)
 
-  override def isImportableName(name: SimpleName): Boolean =
-    super.isImportableName(name) && classOrInterface.getName.asString != name.asString
+  override def isImportable(scope: Option[String], name: String): Boolean =
+    super.isImportable(scope, name) && (scope match {
+      case None => classOrInterface.exists(c => c.getName.asString != name)
+      case scopeVal: Some[String] => classOrInterface.exists(c => c.getName.asString != scopeVal.get)
+    })
 }
 
 class ParameterContext(
@@ -58,26 +72,38 @@ class ParameterContext(
   val parameters: mutable.Buffer[ast.Parameter]
 ) extends ClassContext(classContext.fileContext, classContext.classOrInterface, classContext.parentClassContext, classContext.extractedStatements) {
   def isNonStaticMember(name: SimpleName): Boolean =
-    classOrInterface.getMembers.asScala
-      .exists {
-        case mem: FieldDeclaration =>
-          !mem.isStatic && mem.getVariables.asScala.exists(v => v.getName == name)
-        case mem: MethodDeclaration =>
-          !mem.isStatic && mem.getName == name
-        case _ => false
+    classOrInterface.exists {
+        _.getMembers.asScala.exists {
+          case mem: FieldDeclaration =>
+            !mem.isStatic && mem.getVariables.asScala.exists(v => v.getName == name)
+          case mem: MethodDeclaration =>
+            !mem.isStatic && mem.getName == name
+          case _ => false
+        }
       }
       &&
       !parameters.exists(p => p.name.escapedText == name.getIdentifier)
 
   def isStaticMember(name: SimpleName): Boolean =
-    classOrInterface.getMembers.asScala
-      .exists {
-        case mem: FieldDeclaration =>
-          mem.isStatic && mem.getVariables.asScala.exists(v => v.getName == name)
-        case mem: MethodDeclaration =>
-          mem.isStatic && mem.getName == name
-        case _ => false
+    classOrInterface.exists {
+      p => p match {
+        // we trat enum constants as static members
+        case e: EnumDeclaration => e.getEntries.asScala.exists {
+          entry => entry.getName == name
+        }
+        case c: ClassOrInterfaceDeclaration => c.getMembers.asScala.exists {
+          case mem: FieldDeclaration =>
+            mem.isStatic && mem.getVariables.asScala.exists(v => v.getName == name)
+          case mem: MethodDeclaration =>
+            mem.isStatic && mem.getName == name
+          case _ => false
+        }
       }
-      &&
-      !parameters.exists(p => p.name.escapedText == name.getIdentifier)
+    } && !parameters.exists(p => p.name.escapedText == name.getIdentifier)
 }
+
+def getTypeScope(`type`: ClassOrInterfaceType): Option[String] =
+  `type`.getScope.toScala.map(t => t.getName.asString)
+
+def getTypeName(`type`: ClassOrInterfaceType): String =
+  `type`.getName.asString

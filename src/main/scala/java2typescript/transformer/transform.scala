@@ -21,15 +21,10 @@ def transformCompilationUnit(context: ProjectContext, cu: CompilationUnit): List
 
   createImports(fileContext) ::: types
 
-def createImports(context: FileContext): List[ast.ImportDeclaration] =
-  context.neededImports.map {
-    im => transformImport(context.packageName, im)
-  }.toList
-
-def transformTypeDeclaration(context: FileContext, decl: TypeDeclaration[?], modifiers: List[ast.Modifier] = List()) =
+def transformTypeDeclaration(context: FileContext, decl: TypeDeclaration[?], modifiers: List[ast.Modifier] = List()): List[ast.Statement] =
   decl match
     case decl: ClassOrInterfaceDeclaration => transformClassOrInterfaceDeclaration(context, decl, modifiers)
-    case decl: EnumDeclaration => List(transformEnumDeclaration(context, decl, modifiers))
+    case decl: EnumDeclaration => transformEnumDeclaration(context, decl, modifiers)
     case _ => throw new Error("not supported")
 
 def transformNameInContext(context: ParameterContext, name: SimpleName) =
@@ -40,7 +35,7 @@ def transformNameInContext(context: ParameterContext, name: SimpleName) =
     )
   else if (context.isStaticMember(name))
     ast.PropertyAccessExpression(
-      ast.Identifier(context.classOrInterface.getName.getIdentifier),
+      ast.Identifier(context.classOrInterface.get.getName.getIdentifier),
       transformName(name)
     )
   else
@@ -88,7 +83,7 @@ def transformType(context: FileContext, aType: Type): Option[ast.Type] =
         case "String" => Some(ast.StringKeyword())
         case "Integer"|"Double" => Some(ast.NumberKeyword())
         case other =>
-          context.addImportIfNeeded(aType.getName)
+          context.addImportIfNeeded(aType.getScope.toScala.map(f => f.getName.asString), aType.getName.asString)
           Some(ast.TypeReference(ast.Identifier(other), transformTypeArguments(context, aType.getTypeArguments)))
     case aType: VoidType => Some(ast.VoidKeyword())
     case aType: ArrayType => Some(ast.ArrayType(transformType(context, aType.getComponentType).get))
@@ -116,3 +111,4 @@ def transformLiteral(expr: LiteralExpr): ast.Literal =
     case expr: NullLiteralExpr => ast.NullKeyword()
     case expr: CharLiteralExpr => ast.StringLiteral(expr.toString)
     case _ => throw new Error("not supported")
+

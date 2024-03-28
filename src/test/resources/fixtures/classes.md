@@ -102,7 +102,7 @@ class A {
 ```typescript
 export class A {
 }
-class B {
+export class B {
 }
 ```
 
@@ -253,5 +253,32 @@ class A {
 export class A {
     private m00: number;
     private m01: number;
+}
+```
+
+## Nested Classes
+```java
+class A {
+    public class B {
+    }
+}
+```
+```java
+import A;
+
+class C {
+    private A.B ab = new A.B();
+}
+```
+```typescript
+export class A {
+}
+export class B {
+}
+```
+```typescript
+import { B } from "/A.ts";
+export class C {
+    private ab: B = new B();
 }
 ```

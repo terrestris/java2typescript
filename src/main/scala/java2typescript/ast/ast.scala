@@ -51,7 +51,7 @@ case class VariableDeclaration(
   name: Identifier,
   `type`: Option[Type],
   initializer: Option[Expression] = None
-) extends Node {
+) extends Statement {
   val kind: SyntaxKind = SyntaxKind.VariableDeclaration
 }
 
@@ -65,11 +65,30 @@ case class InterfaceDeclaration(
   val kind: SyntaxKind = SyntaxKind.InterfaceDeclaration
 }
 
+case class EnumDeclaration(
+  name: Identifier,
+  members: List[Member] = List(),
+  modifiers: List[Modifier] = List()
+) extends Statement {
+  val kind: SyntaxKind = SyntaxKind.EnumDeclaration
+}
+
 case class ImportDeclaration(
   importClause: ImportClause,
   moduleSpecifier: StringLiteral
 ) extends Node {
   val kind: SyntaxKind = SyntaxKind.ImportDeclaration
+}
+
+case class FunctionDeclaration(
+  name: Identifier,
+  `type`: Option[Type],
+  parameters: List[Parameter] = List(),
+  typeParameters: List[Type] = List(),
+  body: Option[Block] = None,
+  modifiers: List[Modifier] = List(),
+) extends Statement {
+  val kind: SyntaxKind = SyntaxKind.FunctionDeclaration
 }
 
 case class ImportClause(
@@ -160,6 +179,12 @@ case class Constructor(
 ) extends Member {
   val kind: SyntaxKind = SyntaxKind.Constructor
   override val flags: Int = 66048
+}
+
+case class EnumMember(
+  name: Identifier
+) extends Member {
+  val kind: SyntaxKind = SyntaxKind.EnumMember
 }
 
 // Expression

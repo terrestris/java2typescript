@@ -143,7 +143,7 @@ class FixturesSpec extends AnyFunSpec with Matchers {
                 val written = write(parsed)
                 written should be(fix.typeScriptCodes.head)
               else
-                val importMappings = fix.javaCodes.flatMap(analyseExports) ::: config.customImportMappings
+                val importMappings = fix.javaCodes.flatMap(analyseExports) ::: config.customImports
 
                 val context = ProjectContext(config, importMappings)
 
