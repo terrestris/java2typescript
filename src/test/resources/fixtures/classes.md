@@ -14,7 +14,7 @@ export class A {
 interface A {}
 ```
 ```typescript
-export interface A {
+export abstract class A {
 }
 ```
 

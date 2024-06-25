@@ -66,10 +66,10 @@ def transformClassOrInterfaceDeclaration(
   val modifiersVal = getModifiers(decl.getModifiers.asScala.toList, additionalModifiers)
 
   if (decl.isInterface)
-    ast.InterfaceDeclaration(
+    ast.ClassDeclaration(
       transformName(decl.getName),
       members = members.toList,
-      modifiers = modifiersVal,
+      modifiers = modifiersVal ::: List(ast.AbstractKeyword()),
       heritageClauses = transformHeritage(context, decl.getExtendedTypes, ast.SyntaxKind.ExtendsKeyword).toList
         ::: transformHeritage(context, decl.getImplementedTypes, ast.SyntaxKind.ImplementsKeyword).toList
     )
