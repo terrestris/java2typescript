@@ -1,7 +1,6 @@
 # Overloading
 
 ## method overloading
-options: debug
 ```java
 class A {
     private double distanceToConstraints(Point p) {
