@@ -1,6 +1,7 @@
 # Overloading
 
 ## method overloading
+options: debug
 ```java
 class A {
     private double distanceToConstraints(Point p) {
@@ -10,12 +11,17 @@ class A {
     private double distanceToConstraints(double x, double y) {
         return 2;
     }
+
+    private double distanceToConstraints(double[] coordinates) {
+        return 3;
+    }
 }
 ```
 ```typescript
 export class A {
     private distanceToConstraints(p: Point): number;
     private distanceToConstraints(x: number, y: number): number;
+    private distanceToConstraints(coordinates: number[]): number;
     private distanceToConstraints(...args: any[]): number {
         if (args.length === 1 && args[0] instanceof Point) {
             let p: Point = args[0];
@@ -25,6 +31,10 @@ export class A {
             let x: number = args[0];
             let y: number = args[1];
             return 2;
+        }
+        if (args.length === 1 && Array.isArray(args[0])) {
+            let coordinates: number[] = args[0];
+            return 3;
         }
         throw new Error("overload does not exist");
     }
