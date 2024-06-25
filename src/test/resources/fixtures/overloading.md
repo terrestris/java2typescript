@@ -58,7 +58,7 @@ export class A {
             let a: number = args[0];
             let b: string = args[1];
         }
-        if (args.length === 1 && typeof args[0] === "array") {
+        if (args.length === 1 && Array.isArray(args[0])) {
             let c: boolean[] = args[0];
         }
         throw new Error("overload does not exist");

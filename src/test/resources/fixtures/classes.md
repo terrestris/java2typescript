@@ -277,7 +277,7 @@ export class B {
 }
 ```
 ```typescript
-import { B } from "/A.ts";
+import { B } from "./A.ts";
 export class C {
     private ab: B = new B();
 }

@@ -67,7 +67,7 @@ export function method(): Test {
 }
 ```
 ```typescript
-import { Test, method } from "/Test.ts";
+import { Test, method } from "./Test.ts";
 export class A {
     private method(): boolean {
         let a: Test = Test.A;
