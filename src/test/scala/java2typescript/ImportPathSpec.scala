@@ -21,4 +21,8 @@ class ImportPathSpec extends AnyFlatSpec with should.Matchers {
   "the import path resolver" should "resolve path with partially matching package" in {
     resolveImportPath(Array("a", "b", "f", "g"), Array("a", "b", "c", "d")) should be("../../c/d")
   }
+
+  "the import path resolver" should "resolve a path in the same directory" in {
+    resolveImportPath(Array("a"), Array("a")) should be(".")
+  }
 }

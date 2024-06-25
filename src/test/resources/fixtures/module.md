@@ -217,3 +217,28 @@ export class A {
     }
 }
 ```
+
+## Import from same directory/package
+```java
+package a.b;
+
+class D {
+}
+```
+```java
+package a.b;
+
+class A {
+    private D d;
+}
+```
+```typescript
+export class D {
+}
+```
+```typescript
+import { D } from "./D.ts";
+export class A {
+    private d: D;
+}
+```

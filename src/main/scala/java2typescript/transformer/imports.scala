@@ -44,9 +44,14 @@ def resolveImportPath(packagePath: Array[String], importPath: Array[String]): St
     .zipAll(importPath, "", "")
     .dropWhile((a, b) => a == b)
 
-  (
-    differing.map(pair => pair(0)).takeWhile(v => v != "").map(v => "..").toList
-      :::
-      differing.map(pair => pair(1)).takeWhile(v => v != "").toList
-    ).mkString("/")
+  if (differing.length == 0)
+    "."
+  else
+    (
+      // while there is something left in the package path, use ".." to ascend
+      differing.map(pair => pair(0)).takeWhile(v => v != "").map(v => "..").toList
+        :::
+        // while there is something in the import path use the name to descend
+        differing.map(pair => pair(1)).takeWhile(v => v != "").toList
+      ).mkString("/")
 }
