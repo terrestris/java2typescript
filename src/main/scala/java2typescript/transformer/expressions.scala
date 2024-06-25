@@ -139,13 +139,39 @@ def transformUnaryExpression(context: ParameterContext, expr: UnaryExpr): ast.Pr
       transformExpression(context, expr.getExpression)
     )
 
-def transformObjectCreationExpression(context: ParameterContext, expr: ObjectCreationExpr) =
-  context.addImportIfNeeded(getTypeScope(expr.getType), getTypeName(expr.getType))
-  ast.NewExpression(
-    ast.Identifier(expr.getType.getName.getIdentifier),
-    transformArguments(context, expr.getArguments),
-    transformTypeArguments(context, expr.getTypeArguments)
-  )
+def transformObjectCreationExpression(context: ParameterContext, expr: ObjectCreationExpr): ast.Expression =
+  if (getTypeName(expr.getType).endsWith("Exception") || getTypeName(expr.getType).endsWith("Error"))
+      val name = expr.getType.getName
+      if (name.asString() == "Error")
+        return ast.NewExpression(
+          ast.Identifier("Error"),
+          transformArguments(context, expr.getArguments),
+          transformTypeArguments(context, expr.getTypeArguments)
+        )
+      val args = expr.getArguments.asScala
+      if (args.length > 1)
+        println(s"WARN: ${expr.getType.getName}: all but the first error argument are dropped.")
+
+      ast.NewExpression(
+        ast.Identifier("Error"),
+        List(
+          if (args.isEmpty)
+            ast.StringLiteral(name.toString)
+          else
+            ast.BinaryExpression(
+              ast.StringLiteral(s"$name: "),
+              transformExpression(context, args.head),
+              ast.PlusToken()
+            )
+        )
+      )
+  else
+    context.addImportIfNeeded(getTypeScope(expr.getType), getTypeName(expr.getType))
+    ast.NewExpression(
+      ast.Identifier(expr.getType.getName.getIdentifier),
+      transformArguments(context, expr.getArguments),
+      transformTypeArguments(context, expr.getTypeArguments)
+    )
 
 def transformArguments(context: ParameterContext, expressions: NodeList[Expression]) =
   expressions.asScala.map(transformExpression.curried(context)).toList

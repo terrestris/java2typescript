@@ -1,8 +1,7 @@
 package java2typescript.transformer
 
-import com.github.javaparser.ast.expr.{NameExpr, ObjectCreationExpr}
+import com.github.javaparser.ast.expr.{MethodCallExpr, NameExpr, ObjectCreationExpr}
 import com.github.javaparser.ast.stmt.{AssertStmt, BlockStmt, BreakStmt, CatchClause, ContinueStmt, DoStmt, EmptyStmt, ExplicitConstructorInvocationStmt, ExpressionStmt, ForEachStmt, ForStmt, IfStmt, ReturnStmt, Statement, SwitchStmt, ThrowStmt, TryStmt, WhileStmt}
-
 import java2typescript.ast
 
 import scala.jdk.CollectionConverters.*
@@ -113,34 +112,9 @@ def transformTryStatement(context: ParameterContext, stmt: TryStmt) =
   )
 
 def transformThrowStatement(context: ParameterContext, stmt: ThrowStmt): ast.ThrowStatement =
-  stmt.getExpression match
-    case err: ObjectCreationExpr =>
-      val name = err.getType.getName
-      if (name.asString() == "Error")
-        return ast.ThrowStatement(transformExpression(context, err))
-      val args = err.getArguments.asScala
-      if (args.length > 1)
-        println("WARN: all but the first error argument are dropped.")
-
-      ast.ThrowStatement(
-        ast.NewExpression(
-          ast.Identifier("Error"),
-          List(
-          if (args.isEmpty)
-            ast.StringLiteral(name.toString)
-          else
-            ast.BinaryExpression(
-              ast.StringLiteral(s"$name: "),
-              transformExpression(context, args.head),
-              ast.PlusToken()
-            )
-          )
-        )
-      )
-    case err: NameExpr => ast.ThrowStatement(
-      transformName(err.getName)
-    )
-    case _ => throw new Error("throw type not supported")
+  ast.ThrowStatement(
+    transformExpression(context, stmt.getExpression)
+  )
 
 def transformForStatment(context: ParameterContext, stmt: ForStmt) =
   val init = stmt.getInitialization.asScala

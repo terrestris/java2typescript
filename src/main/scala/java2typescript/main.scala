@@ -9,6 +9,7 @@ import java.io.File
 import java.nio.file.{Files, Path, Paths}
 import scala.io.Source
 import scala.jdk.CollectionConverters.*
+import scala.util.matching.Regex
 
 @main def main(configFile: String, files: String*): Unit =
   val configPath = Paths.get(configFile).toAbsolutePath.normalize
@@ -37,17 +38,27 @@ import scala.jdk.CollectionConverters.*
   val importMappings = contents.flatMap {
     (file, content) => analyseExports(content)
   }
-  
+
   val context = ProjectContext(config, importMappings)
 
   println("parse files")
-  val parseResults = contents.map {
-    (file, content) => (file, parser.parse(context, content))
+  val parseResults = contents.flatMap {
+    (file, content) =>
+      try Some(file, parser.parse(context, content)) catch
+        case err: Throwable =>
+          println(s"error occured in $file")
+          err.printStackTrace()
+          None
   }
 
   println("create typescript code")
-  val tsContents = parseResults.map {
-    (file, parseResult) => (file, writer.write(parseResult))
+  val tsContents = parseResults.flatMap {
+    (file, parseResult) =>
+      try Some(file, writer.write(parseResult)) catch
+        case err: Throwable =>
+          println(s"error occured in $file")
+          err.printStackTrace()
+          None
   }
 
   println("write files")
@@ -113,7 +124,7 @@ def gatherFiles(config: Config, source: Path): List[Path] =
         val fileName = file.toString
         if (file.isDirectory)
           gatherFiles(config, filePath)
-        else if (config.skipFiles.exists(f => fileName.endsWith(f)))
+        else if (config.skipFiles.exists(fr => Regex(fr).matches(fileName)))
           println(s"SKIPPED: $fileName")
           List()
         else if (fileName.endsWith(".java"))

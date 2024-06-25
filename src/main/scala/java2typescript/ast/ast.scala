@@ -615,3 +615,11 @@ case class BarEqualsToken() extends Token {
 case class CaretEqualsToken() extends Token {
   val kind: SyntaxKind = SyntaxKind.CaretEqualsToken
 }
+
+case class TildeToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.TildeToken
+}
+
+case class AsteriskEqualsToken() extends Token {
+  val kind: SyntaxKind = SyntaxKind.AsteriskEqualsToken
+}

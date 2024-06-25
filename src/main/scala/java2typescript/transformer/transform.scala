@@ -70,6 +70,7 @@ def transformModifier(modifier: Modifier): Option[ast.Modifier] =
     case Keyword.STATIC => Some(ast.StaticKeyword())
     case Keyword.ABSTRACT => Some(ast.AbstractKeyword())
     case Keyword.FINAL => None
+    case Keyword.STRICTFP => None
     case key => throw new Error(s"Modifier $key not supported")
 
 def transformName(name: SimpleName): ast.Identifier =
@@ -93,9 +94,7 @@ def transformType(context: FileContext, aType: Type): Option[ast.Type] =
     case _ => throw new Error("not supported")
 
 def transformTypeArguments(context: FileContext, args: Optional[NodeList[Type]]): List[ast.Type] =
-  args.toScala.map(o => o.asScala.map(transformType.curried(context)).map {
-    t => t.get
-  }).toList.flatten
+  args.toScala.map(o => o.asScala.flatMap(transformType.curried(context))).toList.flatten
 
 def transformLiteral(expr: LiteralExpr): ast.Literal =
   expr match
