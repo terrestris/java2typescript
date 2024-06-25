@@ -1,10 +1,7 @@
 {
   "source": "../../jsts/jts/modules/core/src/main/java",
   "target": "../../jsts/test",
-  "imports": [
-    {
-      "class": ""
-    }
+  "customImports": [
   ],
   "replacements": [
     {
@@ -29,5 +26,7 @@
     }
   ],
   "skipFiles": [
+    "TestBuilderProxy\\.java",
+    "io\\/.*\\.java"
   ]
 }

@@ -178,10 +178,9 @@ export class A {
 ## Import Config
 ```json
 {
-  "customImportMappings": [
+  "customImports": [
     {
-      "javaQualifiedName": "PriorityQueue",
-      "typescriptName": "PriorityQueue",
+      "javaName": "PriorityQueue",
       "fixedPath": "customLocation/PriorityQueue.ts"
     }
   ]

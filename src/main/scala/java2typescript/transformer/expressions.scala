@@ -3,6 +3,7 @@ package java2typescript.transformer
 import com.github.javaparser.ast.NodeList
 import com.github.javaparser.ast.`type`.{ClassOrInterfaceType, Type}
 import com.github.javaparser.ast.expr.{ArrayAccessExpr, ArrayCreationExpr, ArrayInitializerExpr, AssignExpr, BinaryExpr, CastExpr, ConditionalExpr, EnclosedExpr, Expression, FieldAccessExpr, InstanceOfExpr, LiteralExpr, MethodCallExpr, NameExpr, ObjectCreationExpr, SuperExpr, ThisExpr, UnaryExpr, VariableDeclarationExpr}
+import java2typescript.analyseExports.Import
 import java2typescript.ast
 import java2typescript.ast.{ConditionalExpression, SyntaxKind}
 
@@ -82,25 +83,42 @@ def transformArrayCreationExpression(context: ParameterContext, expr: ArrayCreat
       .map(transformExpression.curried(context))
   )
 
-def transformMethodCall(context: ParameterContext, expr: MethodCallExpr) =
-  val scope = expr.getScope.toScala
+def transformMethodCall(context: ParameterContext, expr: MethodCallExpr): ast.Expression =
+  val scopeExpr = expr.getScope.toScala
   val arguments = expr.getArguments.asScala.map(transformExpression.curried(context)).toList
-  if (scope.isEmpty)
+  if (scopeExpr.isEmpty)
     ast.CallExpression(
       transformNameInContext(context, expr.getName),
       arguments
     )
   else
-    if (scope.get.isNameExpr)
-      val name = scope.get.asNameExpr.getName
-      context.addImportIfNeeded(name)
-    ast.CallExpression(
-      ast.PropertyAccessExpression(
-        transformExpression(context, scope.get),
-        transformName(expr.getName)
-      ),
-      arguments
-    )
+    if (scopeExpr.get.isNameExpr)
+      val scope = Some(scopeExpr.get.asNameExpr.getName.asString)
+      val name = expr.getName.asString
+      context.addImportIfNeeded(scope, name)
+      val im = context.getImport(scope, name)
+      im match {
+        case None => ast.CallExpression(
+          ast.PropertyAccessExpression(
+            transformExpression(context, scopeExpr.get),
+            transformName(expr.getName)
+          ),
+          arguments
+        )
+        case imVal: Some[Import] => ast.CallExpression(
+          ast.Identifier(imVal.get.javaName),
+          arguments
+        )
+      }
+    else
+      ast.CallExpression(
+        ast.PropertyAccessExpression(
+          transformExpression(context, scopeExpr.get),
+          transformName(expr.getName)
+        ),
+        arguments
+      )
+
 
 def transformBinaryExpression(context: ParameterContext, expr: BinaryExpr): ast.BinaryExpression =
   ast.BinaryExpression(
@@ -121,13 +139,39 @@ def transformUnaryExpression(context: ParameterContext, expr: UnaryExpr): ast.Pr
       transformExpression(context, expr.getExpression)
     )
 
-def transformObjectCreationExpression(context: ParameterContext, expr: ObjectCreationExpr) =
-  context.addImportIfNeeded(expr.getType.getName)
-  ast.NewExpression(
-    ast.Identifier(expr.getType.getName.getIdentifier),
-    transformArguments(context, expr.getArguments),
-    transformTypeArguments(context, expr.getTypeArguments)
-  )
+def transformObjectCreationExpression(context: ParameterContext, expr: ObjectCreationExpr): ast.Expression =
+  if (getTypeName(expr.getType).endsWith("Exception") || getTypeName(expr.getType).endsWith("Error"))
+      val name = expr.getType.getName
+      if (name.asString() == "Error")
+        return ast.NewExpression(
+          ast.Identifier("Error"),
+          transformArguments(context, expr.getArguments),
+          transformTypeArguments(context, expr.getTypeArguments)
+        )
+      val args = expr.getArguments.asScala
+      if (args.length > 1)
+        println(s"WARN: ${expr.getType.getName}: all but the first error argument are dropped.")
+
+      ast.NewExpression(
+        ast.Identifier("Error"),
+        List(
+          if (args.isEmpty)
+            ast.StringLiteral(name.toString)
+          else
+            ast.BinaryExpression(
+              ast.StringLiteral(s"$name: "),
+              transformExpression(context, args.head),
+              ast.PlusToken()
+            )
+        )
+      )
+  else
+    context.addImportIfNeeded(getTypeScope(expr.getType), getTypeName(expr.getType))
+    ast.NewExpression(
+      ast.Identifier(expr.getType.getName.getIdentifier),
+      transformArguments(context, expr.getArguments),
+      transformTypeArguments(context, expr.getTypeArguments)
+    )
 
 def transformArguments(context: ParameterContext, expressions: NodeList[Expression]) =
   expressions.asScala.map(transformExpression.curried(context)).toList
@@ -135,7 +179,7 @@ def transformArguments(context: ParameterContext, expressions: NodeList[Expressi
 def transformFieldAccessExpression(context: ParameterContext, expr: FieldAccessExpr) =
   if (expr.getScope.isNameExpr)
     val name = expr.getScope.asNameExpr.getName
-    context.addImportIfNeeded(name)
+    context.addImportIfNeeded(None, name.asString)
   ast.PropertyAccessExpression(
     transformExpression(context, expr.getScope),
     transformName(expr.getName)

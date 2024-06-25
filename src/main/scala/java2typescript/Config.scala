@@ -1,6 +1,6 @@
 package java2typescript
 
-import java2typescript.analyseExports.ImportMapping
+import java2typescript.analyseExports.Import
 
 case class ReplacementConfig(
   pattern: String,
@@ -12,5 +12,5 @@ class Config(
   val target: String = "",
   val replacements: List[ReplacementConfig] = List(),
   val skipFiles: List[String] = List(),
-  val customImportMappings: List[ImportMapping] = List()
+  val customImports: List[Import] = List()
 )
