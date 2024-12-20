@@ -1,4 +1,4 @@
-# Largest Empty Circle
+# LargestEmptyCircle
 ## whole class
 ```json
 {
