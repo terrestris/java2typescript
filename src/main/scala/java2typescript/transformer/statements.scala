@@ -51,7 +51,8 @@ def transformStatement(context: ParameterContext, stmt: Statement): ast.Statemen
     case stmt: TryStmt => transformTryStatement(context, stmt)
     case stmt: ExplicitConstructorInvocationStmt => ast.ExpressionStatement(
       ast.CallExpression(
-        ast.SuperKeyword()
+        ast.SuperKeyword(),
+        transformArguments(context, stmt.getArguments)
       )
     )
     case stmt: SwitchStmt => transformSwitchStatement(context, stmt)

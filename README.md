@@ -43,7 +43,10 @@ class A {
     the java class to convert
 }
 ```
-```
+```typescript
+class A {
+    the typescript code that should be generated
+}
 ```
 ````
 
@@ -55,7 +58,7 @@ if you want to debug a fixture, you can add the line `options: debug` right unde
 options: debug
 ```
 
-This will cause the `FixtureSpec` test to only run this single fixture and allways fail (so it won't pass the ci). You can then debug the `FixtureSpec` test and set a breakpoint anywhere.
+This will cause the `FixtureSpec` test to only run this single fixture and always fail (so it won't pass the ci). You can then debug the `FixtureSpec` test and set a breakpoint anywhere.
 
 ### Run program
 
@@ -79,41 +82,36 @@ If you want to see how the typescript AST looks, you can use https://ts-ast-view
 * Find enum `SyntaxKind` in `typescript.d.ts` (`node_modules/@ts-morph/common/lib/typescript.d.ts`)
 * Convert enum to scala in `java2typescript/ast/SyntaxKind.scala`
 
+## How does it work?
+
+The program runs in multiple steps:
+
+1. It reads a config file that contains context information about the code that should be translated. An example lives in `config/j2ts-config.json`.
+2. It gathers all configured files and reads them into memory. It uses regex replacements from the config file to replace some java constructs with other constructs.
+3. It analyzes all exports. Later in the code types that are used are checked against this list via `context.addImportIfNeeded`.
+4. It creates a project context that contains this information
+5. It parses all files one-by-one and creates a typescript ast out of it
+6. It takes the ast for a file and starts a javascript program using the typescript compiler to convert the file into typescript code.
+7. It writes the generated typescript code into the target files
+
 ## TODOs
 
-* add a first parsing step that only determines exports and maps them
-  * add imports for classes from the same package
-  * add different imports for nested classes
-  * add different imports for static methods on enums
-* add package.json
-* add tsconfig
+* CURRENT: Point.java / Geometry.java
+
+* Improve documentation
+* methods from inherited classes need to be prefixed by this
+  * At the moment it works like this: for a given name the program checks if the name is a parameter of a method or a property of the class, if yes it prepends this.
+    * this is not sufficient for names from parent class. if we would gather all local names (names in the class context, parameters and any local variables) we could determine this correctly.
+* Find a clever way to transform constructs that work in Java into equivalent TypeScript structures
+* super is called 
 * create drop in replacements for java builtins
+  * List, ArrayList, Collection -> array
+* Automatically filter files that contain un-translatable structures
+  * Disabled at the moment 
+  * Is done on class level at the moment -> move down to method level
+  * replace by error throwing constructs
+* What to do with System.getProperty? 
+* Check if enum construct is sufficient
+* Improve performance of the typescript code generation step
+* Use const instead of let if possible
 
-parseExports
-
-export -> import
-class XY -> import {XY} from "filename"
-in code
-new XY or XY.staticMethod (same)
-
-class XY { class AB }
-->
-class XY {}
-class XY_AB {}
-->
-import {XY, AB} from "filename"
-
-in code
-new XY.AB
-->
-new XY_AB
-
-enum XY { static something() }
-->
-enum XY {}
-XY_something()
-
-
--> import {XY, something} from "filename"
-in code
-XY.something -> something

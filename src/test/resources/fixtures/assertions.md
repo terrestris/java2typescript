@@ -15,6 +15,6 @@ options: methodBody
 assert x == 132;
 ```
 ```typescript
-if (!(x === 132))
+if (!(this.x === 132))
     throw new Error("Assertion failed");
 ```

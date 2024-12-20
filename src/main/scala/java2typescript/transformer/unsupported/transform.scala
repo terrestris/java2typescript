@@ -4,15 +4,13 @@ import java2typescript.ast
 import java2typescript.ast.SyntaxKind
 import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, ConstructorDeclaration, MethodDeclaration, TypeDeclaration}
-import java2typescript.transformer.{FileContext, ProjectContext, createConstructorOverloads, createMethodOverloads, groupMethodsByName, transformHeritage, transformModifier, transformName, transformParameter, transformType}
+import java2typescript.transformer.{FileContext, ProjectContext, createConstructorOverloads, createMethodOverloads, groupMethodsByName, isDroppableInterface, transformHeritage, transformModifier, transformName, transformParameter, transformType}
 
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
-val unsupportedKeywords = List(
-  "synchronized",
-  "volatile",
-  "transient"
+val unsupportedWords = List(
+  "SoftReference"
 )
 
 def checkUnsupported(code: String) =
@@ -21,10 +19,9 @@ def checkUnsupported(code: String) =
     .replaceAll("\\\\\"", "") // remove escaped quotes
     .replaceAll("\"[^\"]*\"", "\"\"") // remove everything between quotes
     .replaceAll("//.*", "") // remove single line comments
-    .toLowerCase()
 
-  unsupportedKeywords.exists {
-    keyword => reduced.contains(keyword)
+  unsupportedWords.exists {
+    word => reduced.contains(word)
   }
 
 def transformCompilationUnit(context: ProjectContext, cu: CompilationUnit): List[ast.Node] =
@@ -136,6 +133,6 @@ def transformClassOrInterfaceDeclaration(
     transformName(decl.getName),
     members = constructorsWithOverloads ::: methodsWithOverloads,
     modifiers = modifiersVal,
-    heritageClauses = transformHeritage(context, decl.getExtendedTypes, SyntaxKind.ExtendsKeyword).toList
-      ::: transformHeritage(context, decl.getImplementedTypes, SyntaxKind.ImplementsKeyword).toList
+    heritageClauses = transformHeritage(context, decl.getExtendedTypes.asScala.toList, SyntaxKind.ExtendsKeyword).toList
+      ::: transformHeritage(context, decl.getImplementedTypes.asScala.filter(t => !isDroppableInterface(t.getName)).toList, SyntaxKind.ImplementsKeyword).toList
   )

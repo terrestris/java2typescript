@@ -9,6 +9,7 @@ import java.io.File
 import java.nio.file.{Files, Path, Paths}
 import scala.io.Source
 import scala.jdk.CollectionConverters.*
+import scala.util.Using
 import scala.util.matching.Regex
 
 @main def main(configFile: String, files: String*): Unit =
@@ -35,15 +36,20 @@ import scala.util.matching.Regex
   val contents = readFiles(config, gatheredFiles)
 
   println("analyse exports")
+  val analyseProgress = Progress(contents.length)
   val importMappings = contents.flatMap {
-    (file, content) => analyseExports(content)
+    (file, content) =>
+      analyseProgress.step()
+      analyseExports(content)
   }
 
   val context = ProjectContext(config, importMappings)
 
   println("parse files")
+  val parseProgress = Progress(contents.length)
   val parseResults = contents.flatMap {
     (file, content) =>
+      parseProgress.step()
       try Some(file, parser.parse(context, content)) catch
         case err: Throwable =>
           println(s"error occured in $file")
@@ -52,8 +58,10 @@ import scala.util.matching.Regex
   }
 
   println("create typescript code")
+  val tsProgress = Progress(parseResults.length)
   val tsContents = parseResults.flatMap {
     (file, parseResult) =>
+      tsProgress.step()
       try Some(file, writer.write(parseResult)) catch
         case err: Throwable =>
           println(s"error occured in $file")
@@ -62,8 +70,10 @@ import scala.util.matching.Regex
   }
 
   println("write files")
+  val writeProgress = Progress(tsContents.length)
   tsContents.foreach {
     (file, tsContent) => {
+      writeProgress.step()
       val target = changeFileExtension(targetPath.resolve(sourcePath.relativize(file)), "ts")
       val fileWriter = new java.io.PrintWriter(target.toFile)
       try
@@ -140,3 +150,14 @@ def readFiles(config: Config, files: List[Path]): List[(Path, String)] =
     file =>
       (file, replace(readFile(file.toFile), config.replacements))
   }
+
+class Progress (val total: Int, val barLength: Int = 50) {
+  var count = 0
+  def step(): Unit = {
+    val filled = (count.toFloat / total * barLength).toInt
+    print(s"\r[${"=".repeat(filled)}>${" ".repeat(barLength - filled - 1)}]")
+    count += 1
+    if (count == total)
+      println("")
+  }
+}

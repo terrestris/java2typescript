@@ -26,10 +26,18 @@ class FileContext(
   val projectContext: ProjectContext,
   val packageName: Option[String],
   val extractedExport: mutable.Buffer[Import] = ListBuffer(),
-  val neededImports: mutable.Buffer[Import] = ListBuffer()
+  val neededImports: mutable.Buffer[Import] = ListBuffer(),
+  val localIdentifiers: mutable.Buffer[ast.Identifier] = ListBuffer()
 ) extends ProjectContext(projectContext.config, projectContext.importMappings) {
+  def addLocalName(identifier: ast.Identifier): Unit =
+    localIdentifiers += identifier
+
+  def isLocal(name: SimpleName): Boolean =
+    localIdentifiers.exists(i => i.escapedText == name.getIdentifier)
+
   def addExtractedExport(imp: Import): Unit =
     extractedExport += imp
+
   def addImportIfNeeded(scope: Option[String], name: String): Unit =
     if (isImportable(scope, name))
       val exists = neededImports.exists {
@@ -45,10 +53,13 @@ class FileContext(
       else
         addImportIfNeeded(Some(splitted.dropRight(1).mkString(".")), splitted(-1))
     }
+
   def getImport(scope: Option[String], name: String): Option[Import] =
     importMappings.find {
       im => im.javaScope == scope && im.javaName == name
     }
+  def isImportedName(name: SimpleName): Boolean =
+    neededImports.exists(p => p.javaName == name.asString)
 }
 
 class ClassContext(
@@ -56,7 +67,7 @@ class ClassContext(
   val classOrInterface: Option[ClassOrInterfaceDeclaration|EnumDeclaration],
   val parentClassContext: Option[ClassContext] = Option.empty,
   val extractedStatements: mutable.Buffer[ast.Statement] = ListBuffer(),
-) extends FileContext(fileContext.projectContext, fileContext.packageName, fileContext.extractedExport, fileContext.neededImports) {
+) extends FileContext(fileContext.projectContext, fileContext.packageName, fileContext.extractedExport, fileContext.neededImports, fileContext.localIdentifiers) {
   def addExtractedStatements(sts: List[ast.Statement]): Unit =
     extractedStatements.appendAll(sts)
 
@@ -65,12 +76,28 @@ class ClassContext(
       case None => classOrInterface.exists(c => c.getName.asString != name)
       case scopeVal: Some[String] => classOrInterface.exists(c => c.getName.asString != scopeVal.get)
     })
+
+  def isClassName(name: SimpleName): Boolean =
+    classOrInterface.exists(c => c.getName == name) || parentClassContext.exists(c => c.isClassName(name))
+
+  def isInterface: Boolean =
+    classOrInterface.exists(c => {
+      c match
+        case c: ClassOrInterfaceDeclaration => c.isInterface
+        case _ => false
+    }) || parentClassContext.exists(c => c.isInterface)
 }
 
 class ParameterContext(
   val classContext: ClassContext,
   val parameters: mutable.Buffer[ast.Parameter]
 ) extends ClassContext(classContext.fileContext, classContext.classOrInterface, classContext.parentClassContext, classContext.extractedStatements) {
+
+  override def isLocal(name: SimpleName): Boolean =
+    super.isLocal(name)
+    ||
+    parameters.exists(p => p.name.escapedText == name.getIdentifier)
+
   def isNonStaticMember(name: SimpleName): Boolean =
     classOrInterface.exists {
         _.getMembers.asScala.exists {
@@ -87,7 +114,7 @@ class ParameterContext(
   def isStaticMember(name: SimpleName): Boolean =
     classOrInterface.exists {
       p => p match {
-        // we trat enum constants as static members
+        // we treat enum constants as static members
         case e: EnumDeclaration => e.getEntries.asScala.exists {
           entry => entry.getName == name
         }

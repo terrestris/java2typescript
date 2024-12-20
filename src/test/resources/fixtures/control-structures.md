@@ -62,16 +62,16 @@ while (num < 4) {
 }
 ```
 ```typescript
-while (num < 4) {
-    num = func();
+while (this.num < 4) {
+    this.num = this.func();
 }
 ```
 
 ## for
 options: methodBody
 ```java
-for (int i = start; ; i += inc) {
-    if (i >= max) {
+for (int i = 1; ; i += 2) {
+    if (i >= 10) {
         break;
     } else {
         continue;
@@ -79,8 +79,8 @@ for (int i = start; ; i += inc) {
 }
 ```
 ```typescript
-for (let i: number = start;; i += inc) {
-    if (i >= max) {
+for (let i: number = 1;; i += 2) {
+    if (i >= 10) {
         break;
     }
     else {
@@ -92,12 +92,14 @@ for (let i: number = start;; i += inc) {
 ## for2
 options: methodBody
 ```java
-for (j = 0; j < last; j++)
+int i = 2;
+for (int j = 0; j < last; j++)
     newCoordinates[j] = coordinates[(i + j) % last];
 ```
 ```typescript
-for (j = 0; j < last; j++)
-    newCoordinates[j] = coordinates[(i + j) % last];
+let i: number = 2;
+for (let j: number = 0; j < this.last; j++)
+    this.newCoordinates[j] = this.coordinates[(i + j) % this.last];
 ```
 
 ## switch
@@ -116,15 +118,15 @@ switch(num) {
 }
 ```
 ```typescript
-switch (num) {
+switch (this.num) {
     case 1:
-        func();
+        this.func();
         break;
     case 2:
     case 3:
-        func2();
+        this.func2();
         break;
-    default: func3();
+    default: this.func3();
 }
 ```
 
@@ -136,19 +138,21 @@ for (Geometry hole : holesFixed) {
 }
 ```
 ```typescript
-for (let hole: Geometry of holesFixed) {
-    holes.add(hole);
+for (let hole: Geometry of this.holesFixed) {
+    this.holes.add(hole);
 }
 ```
 
 ## do while
 options: methodBody
 ```java
+int i = 1;
 do {
     i++;
 } while (i < 10);
 ```
 ```typescript
+let i: number = 1;
 do {
     i++;
 } while (i < 10);

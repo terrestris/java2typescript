@@ -31,6 +31,10 @@
     {
       "pattern": "public Object clone\\(\\)(\\s+\\{\\s*return copy\\(\\);\\s*}|;)",
       "replacement": ""
+    },
+    {
+      "pattern": "private static final long serialVersionUID = \\d+L;",
+      "replacement": ""
     }
   ],
   "skipFiles": [
