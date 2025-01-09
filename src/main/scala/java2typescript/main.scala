@@ -161,3 +161,14 @@ class Progress (val total: Int, val barLength: Int = 50) {
       println("")
   }
 }
+
+//class ProgressLogger(val numberOfSteps: Int) {
+//  var currentStepTitle: String
+//  var currentStep: Int = 0
+//  
+//  def step(title: String): Unit =
+//    currentStepTitle = title
+//    currentStep += 1
+// 
+//  
+//}

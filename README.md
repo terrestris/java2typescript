@@ -103,7 +103,8 @@ The program runs in multiple steps:
   * At the moment it works like this: for a given name the program checks if the name is a parameter of a method or a property of the class, if yes it prepends this.
     * this is not sufficient for names from parent class. if we would gather all local names (names in the class context, parameters and any local variables) we could determine this correctly.
 * Find a clever way to transform constructs that work in Java into equivalent TypeScript structures
-* super is called 
+* super is called to late sometimes
+* What to do with properties and methods with the same name??
 * create drop in replacements for java builtins
   * List, ArrayList, Collection -> array
 * Automatically filter files that contain un-translatable structures

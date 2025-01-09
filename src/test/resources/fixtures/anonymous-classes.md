@@ -1,6 +1,5 @@
 # Anonymous Classes
 ## simple anonymous class that implements interface
-options: debug
 ```java
 interface Filter {
     boolean filter(String x);
@@ -20,7 +19,7 @@ class FilterFactory {
 ```
 ```typescript
 export abstract class Filter {
-  public abstract filter(x: string): boolean;
+    public abstract filter(x: string): boolean;
 }
 ```
 ```typescript
@@ -28,7 +27,7 @@ import { Filter } from "./Filter.ts";
 export class FilterFactory {
     public getFilter(): Filter {
         return new (class extends Filter {
-            public filter(x: string) {
+            public filter(x: string): boolean {
                 return x === "value";
             }
         })();

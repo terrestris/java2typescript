@@ -31,7 +31,7 @@ case class CallExpression(
 }
 
 case class NewExpression (
-  expression: Identifier,
+  expression: Expression,
   arguments: List[Expression] = List(),
   typeArguments: List[Type] = List()
 ) extends Expression {
@@ -101,4 +101,14 @@ case class VariableDeclarationList(
   override val flags: Int = 1 // 1 = Let
 ) extends Expression {
   val kind: SyntaxKind = SyntaxKind.VariableDeclarationList
+}
+
+case class ClassExpression(
+  name: Option[Identifier],
+  typeParameters: List[Type] = List(),
+  heritageClauses: List[HeritageClause] = List(),
+  members: List[Member] = List(),
+  modifiers: List[Modifier] = List()
+) extends Expression {
+  val kind: SyntaxKind = SyntaxKind.ClassExpression
 }
