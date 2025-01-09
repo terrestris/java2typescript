@@ -1,4 +1,4 @@
-# Largest Empty Circle
+# LargestEmptyCircle
 ## whole class
 ```json
 {
@@ -613,7 +613,7 @@ export class LargestEmptyCircle {
         return new Cell(p.getX(), p.getY(), 0, this.distanceToConstraints(p));
     }
 }
-export class Cell implements Comparable<Cell> {
+export class Cell {
     private static SQRT2: number = 1.4142135623730951;
     private x: number;
     private y: number;

@@ -16,7 +16,19 @@ export enum Test {
 ```
 
 ## Enum with static fields and methods
+```json
+{
+  "customImports": [
+    {
+      "javaName": "EnumSet",
+      "fixedPath": "customLocation/EnumSet.ts"
+    }
+  ]
+}
+```
 ```java
+import java.util.EnumSet;
+
 enum Test {
     X,
     Y;
@@ -25,6 +37,7 @@ enum Test {
 }
 ```
 ```typescript
+import { EnumSet } from "customLocation/EnumSet.ts";
 export enum Test {
     X,
     Y
@@ -67,7 +80,7 @@ export function method(): Test {
 }
 ```
 ```typescript
-import { Test, method } from "/Test.ts";
+import { Test, method } from "./Test.ts";
 export class A {
     private method(): boolean {
         let a: Test = Test.A;

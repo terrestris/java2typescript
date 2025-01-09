@@ -1,4 +1,4 @@
-# Declarations
+# Assignments
 
 ## string variable
 options: methodBody
@@ -39,6 +39,7 @@ let c: CustomType<string> = new CustomType(123, "abc");
 ## increment, decrement
 options: methodBody
 ```java
+int i = 5;
 i++;
 i--;
 ++i;
@@ -47,6 +48,7 @@ i += 1;
 i -= 2;
 ```
 ```typescript
+let i: number = 5;
 i++;
 i--;
 ++i;

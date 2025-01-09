@@ -119,7 +119,7 @@ def createParameterTypeCheck(expr: ast.Expression, `type`: ast.Type): ast.Expres
     case t: ast.NumberKeyword => createTypeOf(expr, "number")
     case t: ast.StringKeyword => createTypeOf(expr, "string")
     case t: ast.BooleanKeyword => createTypeOf(expr, "boolean")
-    case t: ast.ArrayType => createTypeOf(expr, "array")
+    case t: ast.ArrayType => ast.CallExpression(ast.PropertyAccessExpression(ast.Identifier("Array"), ast.Identifier("isArray")), List(expr))
     case t: ast.TypeReference => ast.BinaryExpression(
       expr,
       t.typeName,

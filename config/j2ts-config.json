@@ -23,6 +23,18 @@
     {
       "pattern": "prepareTypedArray\\((\\w*)[^)]*\\)",
       "replacement": "$1.slice()"
+    },
+    {
+      "pattern": "extends Cloneable",
+      "replacement": ""
+    },
+    {
+      "pattern": "public Object clone\\(\\)(\\s+\\{\\s*return copy\\(\\);\\s*}|;)",
+      "replacement": ""
+    },
+    {
+      "pattern": "private static final long serialVersionUID = \\d+L;",
+      "replacement": ""
     }
   ],
   "skipFiles": [

@@ -1,6 +1,5 @@
 package java2typescript.transformer
 
-import com.github.javaparser.ast.expr.{MethodCallExpr, NameExpr, ObjectCreationExpr}
 import com.github.javaparser.ast.stmt.{AssertStmt, BlockStmt, BreakStmt, CatchClause, ContinueStmt, DoStmt, EmptyStmt, ExplicitConstructorInvocationStmt, ExpressionStmt, ForEachStmt, ForStmt, IfStmt, ReturnStmt, Statement, SwitchStmt, ThrowStmt, TryStmt, WhileStmt}
 import java2typescript.ast
 
@@ -52,7 +51,8 @@ def transformStatement(context: ParameterContext, stmt: Statement): ast.Statemen
     case stmt: TryStmt => transformTryStatement(context, stmt)
     case stmt: ExplicitConstructorInvocationStmt => ast.ExpressionStatement(
       ast.CallExpression(
-        ast.SuperKeyword()
+        ast.SuperKeyword(),
+        transformArguments(context, stmt.getArguments)
       )
     )
     case stmt: SwitchStmt => transformSwitchStatement(context, stmt)

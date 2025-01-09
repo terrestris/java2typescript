@@ -78,18 +78,18 @@ options: methodBody
 String text = (String) someVar;
 ```
 ```typescript
-let text: string = someVar as string;
+let text: string = this.someVar as string;
 ```
 
 ## conditional expression
 options: methodBody
 ```java
-Integer val = condition
-    ? var1
-    : var2;
+Integer val = someVar == 3
+    ? 4
+    : 5;
 ```
 ```typescript
-let val: number = condition ? var1 : var2;
+let val: number = this.someVar === 3 ? 4 : 5;
 ```
 
 ## instanceof
@@ -98,5 +98,5 @@ options: methodBody
 Boolean x = a instanceof B;
 ```
 ```typescript
-let x: boolean = a instanceof B;
+let x: boolean = this.a instanceof B;
 ```

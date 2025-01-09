@@ -2,7 +2,7 @@ package java2typescript.transformer
 
 import com.github.javaparser.ast.NodeList
 import com.github.javaparser.ast.`type`.{ClassOrInterfaceType, Type}
-import com.github.javaparser.ast.expr.{ArrayAccessExpr, ArrayCreationExpr, ArrayInitializerExpr, AssignExpr, BinaryExpr, CastExpr, ConditionalExpr, EnclosedExpr, Expression, FieldAccessExpr, InstanceOfExpr, LiteralExpr, MethodCallExpr, NameExpr, ObjectCreationExpr, SuperExpr, ThisExpr, UnaryExpr, VariableDeclarationExpr}
+import com.github.javaparser.ast.expr.{ArrayAccessExpr, ArrayCreationExpr, ArrayInitializerExpr, AssignExpr, BinaryExpr, CastExpr, ConditionalExpr, EnclosedExpr, Expression, FieldAccessExpr, InstanceOfExpr, LiteralExpr, LongLiteralExpr, MethodCallExpr, NameExpr, ObjectCreationExpr, SuperExpr, ThisExpr, UnaryExpr, VariableDeclarationExpr}
 import java2typescript.analyseExports.Import
 import java2typescript.ast
 import java2typescript.ast.{ConditionalExpression, SyntaxKind}
@@ -137,40 +137,6 @@ def transformUnaryExpression(context: ParameterContext, expr: UnaryExpr): ast.Pr
     ast.PostfixUnaryExpression(
       transformOperator(expr.getOperator.name).kind,
       transformExpression(context, expr.getExpression)
-    )
-
-def transformObjectCreationExpression(context: ParameterContext, expr: ObjectCreationExpr): ast.Expression =
-  if (getTypeName(expr.getType).endsWith("Exception") || getTypeName(expr.getType).endsWith("Error"))
-      val name = expr.getType.getName
-      if (name.asString() == "Error")
-        return ast.NewExpression(
-          ast.Identifier("Error"),
-          transformArguments(context, expr.getArguments),
-          transformTypeArguments(context, expr.getTypeArguments)
-        )
-      val args = expr.getArguments.asScala
-      if (args.length > 1)
-        println(s"WARN: ${expr.getType.getName}: all but the first error argument are dropped.")
-
-      ast.NewExpression(
-        ast.Identifier("Error"),
-        List(
-          if (args.isEmpty)
-            ast.StringLiteral(name.toString)
-          else
-            ast.BinaryExpression(
-              ast.StringLiteral(s"$name: "),
-              transformExpression(context, args.head),
-              ast.PlusToken()
-            )
-        )
-      )
-  else
-    context.addImportIfNeeded(getTypeScope(expr.getType), getTypeName(expr.getType))
-    ast.NewExpression(
-      ast.Identifier(expr.getType.getName.getIdentifier),
-      transformArguments(context, expr.getArguments),
-      transformTypeArguments(context, expr.getTypeArguments)
     )
 
 def transformArguments(context: ParameterContext, expressions: NodeList[Expression]) =

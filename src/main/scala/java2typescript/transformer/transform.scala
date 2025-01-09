@@ -38,16 +38,23 @@ def transformNameInContext(context: ParameterContext, name: SimpleName) =
       ast.Identifier(context.classOrInterface.get.getName.getIdentifier),
       transformName(name)
     )
-  else
+  else if (context.isLocal(name) || context.isImportedName(name) || context.isClassName(name) || isBuiltInType(name))
     transformName(name)
+  else
+    ast.PropertyAccessExpression(
+      ast.ThisKeyword(),
+      transformName(name)
+    )
 
 def transformDeclaratorToVariable(context: ClassContext|ParameterContext, decl: VariableDeclarator): ast.VariableDeclaration =
+  val name = transformName(decl.getName)
+  context.addLocalName(name)
   val parameterContext = context match {
     case c: ParameterContext => c
     case c: ClassContext => ParameterContext(context, ListBuffer())
   }
   ast.VariableDeclaration(
-    transformName(decl.getName),
+    name,
     transformType(context, decl.getType),
     decl.getInitializer.toScala.map(transformExpression.curried(parameterContext))
   )
@@ -71,6 +78,9 @@ def transformModifier(modifier: Modifier): Option[ast.Modifier] =
     case Keyword.ABSTRACT => Some(ast.AbstractKeyword())
     case Keyword.FINAL => None
     case Keyword.STRICTFP => None
+    case Keyword.VOLATILE => None
+    case Keyword.SYNCHRONIZED => None
+    case Keyword.TRANSIENT => None
     case key => throw new Error(s"Modifier $key not supported")
 
 def transformName(name: SimpleName): ast.Identifier =
@@ -82,7 +92,15 @@ def transformType(context: FileContext, aType: Type): Option[ast.Type] =
       aType.getName.getIdentifier match
         case "Boolean" => Some(ast.BooleanKeyword())
         case "String" => Some(ast.StringKeyword())
-        case "Integer"|"Double" => Some(ast.NumberKeyword())
+        case "Integer"|"Double"|"Long" => Some(ast.NumberKeyword())
+        case "List"|"Collection" =>
+          val types = transformTypeArguments(context, aType.getTypeArguments)
+          if (types.isEmpty)
+            Some(ast.ArrayType(ast.AnyKeyword()))
+          else if (types.length == 1)
+            Some(ast.ArrayType(types.head))
+          else
+            throw new Error("Array type cannot have more then on type argument")
         case other =>
           context.addImportIfNeeded(aType.getScope.toScala.map(f => f.getName.asString), aType.getName.asString)
           Some(ast.TypeReference(ast.Identifier(other), transformTypeArguments(context, aType.getTypeArguments)))
@@ -100,8 +118,10 @@ def transformLiteral(expr: LiteralExpr): ast.Literal =
   expr match
     case expr: StringLiteralExpr =>
       ast.StringLiteral(expr.getValue)
-    case expr: (IntegerLiteralExpr|DoubleLiteralExpr|LongLiteralExpr) =>
+    case expr: (IntegerLiteralExpr|DoubleLiteralExpr) =>
       ast.NumericLiteral(expr.getValue)
+    case expr: LongLiteralExpr =>
+      ast.NumericLiteral(expr.getValue.stripSuffix("L"))
     case expr: BooleanLiteralExpr =>
       if (expr.getValue)
         ast.TrueKeyword()

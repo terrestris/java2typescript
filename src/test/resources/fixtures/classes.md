@@ -11,10 +11,23 @@ export class A {
 
 ## Basic interface
 ```java
-interface A {}
+interface A {
+}
 ```
 ```typescript
-export interface A {
+export abstract class A {
+}
+```
+
+## Interface with method
+```java
+interface A {
+    void iMethod();
+}
+```
+```typescript
+export abstract class A {
+    public abstract iMethod(): void;
 }
 ```
 
@@ -207,10 +220,12 @@ export class A implements B, C<D> {
 
 ## static initializer
 ```java
+import System;
+
 class GeometryOverlay {
     static String OVERLAY_PROPERTY_NAME = "test";
     static {
-        setOverlayImpl(System.getProperty(OVERLAY_PROPERTY_NAME));
+        setOverlayImpl(OVERLAY_PROPERTY_NAME);
     }
     static void setOverlayImpl(String overlayImplCode) {
     }
@@ -222,7 +237,7 @@ export class GeometryOverlay {
     static setOverlayImpl(overlayImplCode: string): void {
     }
 }
-GeometryOverlay.setOverlayImpl(System.getProperty(GeometryOverlay.OVERLAY_PROPERTY_NAME));
+GeometryOverlay.setOverlayImpl(GeometryOverlay.OVERLAY_PROPERTY_NAME);
 ```
 
 ## abstract class
@@ -277,8 +292,44 @@ export class B {
 }
 ```
 ```typescript
-import { B } from "/A.ts";
+import { B } from "./A.ts";
 export class C {
     private ab: B = new B();
+}
+```
+
+## Super Constructor
+```java
+class A {
+    private String val;
+    public A(String x) {
+        val = x;
+    }
+}
+```
+```java
+import A;
+
+class B extends A {
+    public B(String y) {
+        super(y);
+    }
+}
+```
+```typescript
+export class A {
+    private val: string;
+    public constructor(x: string) {
+        this.val = x;
+    }
+}
+```
+
+```typescript
+import { A } from "./A.ts";
+export class B extends A {
+    public constructor(y: string) {
+        super(y);
+    }
 }
 ```

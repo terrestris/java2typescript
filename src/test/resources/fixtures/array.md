@@ -6,7 +6,7 @@ Coordinate[] coordinates = new Coordinate[] { centerPt.copy(), radiusPt.copy() }
 Coordinate[] coords = { new Coordinate(), new Coordinate() };
 ```
 ```typescript
-let coordinates: Coordinate[] = [centerPt.copy(), radiusPt.copy()];
+let coordinates: Coordinate[] = [this.centerPt.copy(), this.radiusPt.copy()];
 let coords: Coordinate[] = [new Coordinate(), new Coordinate()];
 ```
 
@@ -16,7 +16,7 @@ options: methodBody
 Integer num = arr[0];
 ```
 ```typescript
-let num: number = arr[0];
+let num: number = this.arr[0];
 ```
 
 ## Array brackets position

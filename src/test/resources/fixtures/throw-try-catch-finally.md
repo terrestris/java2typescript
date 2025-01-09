@@ -54,12 +54,12 @@ finally {
 ```
 ```typescript
 try {
-    something();
+    this.something();
 }
 catch (e: any) {
-    somethingOnError();
+    this.somethingOnError();
 }
 finally {
-    somethingFinally();
+    this.somethingFinally();
 }
 ```

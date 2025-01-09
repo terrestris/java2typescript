@@ -8,7 +8,6 @@ import java.io.File
 import scala.collection.mutable.ListBuffer
 import scala.collection.BufferedIterator
 import scala.io.Source
-
 import java2typescript.analyseExports.analyseExports
 import java2typescript.parser.{parse, parseMethodBody}
 import java2typescript.transformer.ProjectContext
@@ -103,21 +102,29 @@ def getFixtureCollection(it: BufferedIterator[String]): FixtureCollection = {
   FixtureCollection(collectionTitle, fixtureList.toList)
 }
 
-def fixtures(): List[FixtureCollection] = {
+def readFixturesDirectory(directory: File): List[FixtureCollection] = {
+  directory.listFiles
+    .flatMap(f => {
+      if (f.isDirectory)
+        readFixturesDirectory(f)
+      else if (f.getName.endsWith(".md"))
+        val source = Source.fromFile(f)
+        val collection = getFixtureCollection(source.getLines.buffered)
+        source.close()
+        println(s"${collection.fixtures.length} fixtures in file $f")
+        List(collection)
+      else
+        List()
+    })
+    .toList
+}
+
+def readFixtures(): List[FixtureCollection] = {
   val fixturesDir = getClass.getResource("/fixtures/")
   val folder = File(fixturesDir.getPath)
   if (!folder.exists || !folder.isDirectory)
     return List()
-  val fixColls = folder.listFiles
-    .filter(f => f.getName.endsWith(".md"))
-    .map(f => {
-      val source = Source.fromFile(f)
-      val collection = getFixtureCollection(source.getLines.buffered)
-      source.close()
-      println(s"${collection.fixtures.length} fixtures in file $f")
-      collection
-    })
-    .toList
+  val fixColls = readFixturesDirectory(folder)
   val anyDebug = fixColls.exists(coll => coll.fixtures.exists(f => f.options.debug))
   if (anyDebug)
     println("Found fixtures with debug option. Only running those fixtures.")
@@ -129,7 +136,7 @@ def fixtures(): List[FixtureCollection] = {
 }
 
 class FixturesSpec extends AnyFunSpec with Matchers {
-  forAll(fixtures())(
+  forAll(readFixtures())(
     collection => {
       describe(collection.title) {
         forAll(collection.fixtures) {
