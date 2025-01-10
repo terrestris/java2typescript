@@ -52,6 +52,7 @@ import scala.util.matching.Regex
       parseProgress.step()
       try Some(file, parser.parse(context, content)) catch
         case err: Throwable =>
+          parseProgress.clear()
           println(s"error occured in $file")
           err.printStackTrace()
           None
@@ -64,7 +65,8 @@ import scala.util.matching.Regex
       tsProgress.step()
       try Some(file, writer.write(parseResult)) catch
         case err: Throwable =>
-          println(s"error occured in $file")
+          tsProgress.clear()
+          println(s"error occurred in $file")
           err.printStackTrace()
           None
   }
@@ -155,20 +157,13 @@ class Progress (val total: Int, val barLength: Int = 50) {
   var count = 0
   def step(): Unit = {
     val filled = (count.toFloat / total * barLength).toInt
-    print(s"\r[${"=".repeat(filled)}>${" ".repeat(barLength - filled - 1)}]")
+    this.clear()
+    print(s"[${"=".repeat(filled)}>${" ".repeat(barLength - filled - 1)}]")
     count += 1
     if (count == total)
       println("")
   }
+  def clear(): Unit = {
+    print("\r")
+  }
 }
-
-//class ProgressLogger(val numberOfSteps: Int) {
-//  var currentStepTitle: String
-//  var currentStep: Int = 0
-//  
-//  def step(title: String): Unit =
-//    currentStepTitle = title
-//    currentStep += 1
-// 
-//  
-//}

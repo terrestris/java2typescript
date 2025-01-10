@@ -29,3 +29,16 @@ Collection b = new Collection();
 let a: T[] = [];
 let b: any[] = [];
 ```
+
+## Special number values
+options: methodBody
+```java
+Double x = Double.NaN;
+Double y = Double.POSITIVE_INFINITY;
+Double z = Double.NEGATIVE_INFINITY;
+```
+```typescript
+let x: number = NaN;
+let y: number = Number.POSITIVE_INFINITY;
+let z: number = Number.NEGATIVE_INFINITY;
+```

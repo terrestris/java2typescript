@@ -2,7 +2,7 @@ package java2typescript.transformer
 
 import com.github.javaparser.ast.NodeList
 import com.github.javaparser.ast.`type`.{ClassOrInterfaceType, Type}
-import com.github.javaparser.ast.expr.{ArrayAccessExpr, ArrayCreationExpr, ArrayInitializerExpr, AssignExpr, BinaryExpr, CastExpr, ConditionalExpr, EnclosedExpr, Expression, FieldAccessExpr, InstanceOfExpr, LiteralExpr, LongLiteralExpr, MethodCallExpr, NameExpr, ObjectCreationExpr, SuperExpr, ThisExpr, UnaryExpr, VariableDeclarationExpr}
+import com.github.javaparser.ast.expr.{ArrayAccessExpr, ArrayCreationExpr, ArrayInitializerExpr, AssignExpr, BinaryExpr, CastExpr, ConditionalExpr, EnclosedExpr, Expression, FieldAccessExpr, InstanceOfExpr, LiteralExpr, LongLiteralExpr, MethodCallExpr, NameExpr, ObjectCreationExpr, SimpleName, SuperExpr, ThisExpr, UnaryExpr, VariableDeclarationExpr}
 import java2typescript.analyseExports.Import
 import java2typescript.ast
 import java2typescript.ast.{ConditionalExpression, SyntaxKind}
@@ -142,9 +142,11 @@ def transformUnaryExpression(context: ParameterContext, expr: UnaryExpr): ast.Pr
 def transformArguments(context: ParameterContext, expressions: NodeList[Expression]) =
   expressions.asScala.map(transformExpression.curried(context)).toList
 
-def transformFieldAccessExpression(context: ParameterContext, expr: FieldAccessExpr) =
+def transformFieldAccessExpression(context: ParameterContext, expr: FieldAccessExpr): ast.Expression =
   if (expr.getScope.isNameExpr)
     val name = expr.getScope.asNameExpr.getName
+    if (name.asString() == "Double")
+      return transformDoubleField(expr.getName)
     context.addImportIfNeeded(None, name.asString)
   ast.PropertyAccessExpression(
     transformExpression(context, expr.getScope),
@@ -160,3 +162,9 @@ def transformAssignExpression(context: ParameterContext, expr: AssignExpr) =
     else
       transformOperator(s"${expr.getOperator.name}_EQUALS")
   )
+
+def transformDoubleField(name: SimpleName) =
+  name.asString() match
+    case "NaN" => ast.Identifier("NaN")
+    case "NEGATIVE_INFINITY" => ast.PropertyAccessExpression(ast.Identifier("Number"), ast.Identifier("NEGATIVE_INFINITY"))
+    case "POSITIVE_INFINITY" => ast.PropertyAccessExpression(ast.Identifier("Number"), ast.Identifier("POSITIVE_INFINITY"))
