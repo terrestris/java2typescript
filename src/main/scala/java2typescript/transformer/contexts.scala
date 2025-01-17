@@ -46,18 +46,18 @@ class FileContext(
       if (!exists) {
         neededImports += getImport(scope, name).get
       }
-    else if (scope.isDefined) {
+    else if (scope.isDefined)
       val splitted = scope.get.split('.')
       if (splitted.length == 1)
         addImportIfNeeded(None, splitted(0))
       else
         addImportIfNeeded(Some(splitted.dropRight(1).mkString(".")), splitted(-1))
-    }
 
   def getImport(scope: Option[String], name: String): Option[Import] =
     importMappings.find {
       im => im.javaScope == scope && im.javaName == name
     }
+
   def isImportedName(name: SimpleName): Boolean =
     neededImports.exists(p => p.javaName == name.asString)
 }
@@ -75,7 +75,7 @@ class ClassContext(
     super.isImportable(scope, name) && (scope match {
       case None => classOrInterface.exists(c => c.getName.asString != name)
       case scopeVal: Some[String] => classOrInterface.exists(c => c.getName.asString != scopeVal.get)
-    })
+    }) && parentClassContext.forall(c => c.isImportable(scope, name))
 
   def isClassName(name: SimpleName): Boolean =
     classOrInterface.exists(c => c.getName == name) || parentClassContext.exists(c => c.isClassName(name))

@@ -36,9 +36,15 @@ options: methodBody
 Double x = Double.NaN;
 Double y = Double.POSITIVE_INFINITY;
 Double z = Double.NEGATIVE_INFINITY;
+Double.isNaN(12);
+Double.isFinite(12);
+Double.doubleToLongBits(12);
 ```
 ```typescript
 let x: number = NaN;
 let y: number = Number.POSITIVE_INFINITY;
 let z: number = Number.NEGATIVE_INFINITY;
+Number.isNaN(12);
+Number.isFinite(12);
+Number(12);
 ```
