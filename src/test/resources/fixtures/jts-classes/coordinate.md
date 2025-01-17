@@ -755,6 +755,7 @@ export class Coordinate implements Comparable<Coordinate> {
         return result;
     }
     public static hashCode(x: number): number {
+        let f: number = Number(x);
         return Math.floor((f ^ (f >>>= 32)));
     }
 }

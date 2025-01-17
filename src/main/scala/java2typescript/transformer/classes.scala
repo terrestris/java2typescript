@@ -101,7 +101,7 @@ def transformClassOrInterfaceDeclaration(
       else
         constructors
 
-    val methodsWithOverloads = groupMethodsByName(members
+    val methodsWithOverloads = groupMethods(members
       .collect {
         case m: ast.MethodDeclaration => m
       }.toList)

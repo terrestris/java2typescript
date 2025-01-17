@@ -4,7 +4,7 @@ import java2typescript.ast
 import java2typescript.ast.SyntaxKind
 import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, ConstructorDeclaration, MethodDeclaration, TypeDeclaration}
-import java2typescript.transformer.{FileContext, ProjectContext, createConstructorOverloads, createMethodOverloads, groupMethodsByName, isDroppableInterface, transformHeritage, transformModifier, transformName, transformParameter, transformType}
+import java2typescript.transformer.{FileContext, ProjectContext, createConstructorOverloads, createMethodOverloads, groupMethods, isDroppableInterface, transformHeritage, transformModifier, transformName, transformParameter, transformType}
 
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
@@ -117,7 +117,7 @@ def transformClassOrInterfaceDeclaration(
     else
       constructors
 
-  val methodsWithOverloads = groupMethodsByName(members
+  val methodsWithOverloads = groupMethods(members
     .collect {
       case m: ast.MethodDeclaration => m
     }.toList)

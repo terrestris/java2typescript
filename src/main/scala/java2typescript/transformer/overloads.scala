@@ -1,32 +1,40 @@
 package java2typescript.transformer
 
 import java2typescript.ast
+import java2typescript.ast.MethodDeclaration
 
 import scala.collection.mutable
 
-def groupMethodsByName(methods: List[ast.MethodDeclaration]): List[List[ast.MethodDeclaration]] =
+def isStatic(declaration: MethodDeclaration) =
+  declaration.modifiers.exists(m => m.kind == ast.SyntaxKind.StaticKeyword)
+
+def isAbstract(declaration: MethodDeclaration) =
+  declaration.modifiers.exists(m => m.kind == ast.SyntaxKind.AbstractKeyword)
+
+def groupMethods(methods: List[ast.MethodDeclaration]): List[List[ast.MethodDeclaration]] =
   if (methods.isEmpty)
     return List()
-  var name = methods.head.name
-  var current = mutable.Buffer[ast.MethodDeclaration](methods.head)
-  val overall = mutable.Buffer[List[ast.MethodDeclaration]]()
-  def appendAndFilter() =
-    if (current.length > 1)
-      overall.append(current.filter(m => !m.modifiers.exists(m => m.kind == ast.SyntaxKind.AbstractKeyword)).toList)
+
+  val groupedMethods = mutable.Buffer[List[ast.MethodDeclaration]]()
+  var unprocessed = methods
+
+  while (unprocessed.nonEmpty)
+    val group = mutable.Buffer[ast.MethodDeclaration](unprocessed.head)
+    val ungrouped = mutable.Buffer[ast.MethodDeclaration]()
+    for (method <- unprocessed.tail)
+      if (method.name == unprocessed.head.name && isStatic(method) == isStatic(unprocessed.head))
+        group.append(method)
+      else
+        ungrouped.append(method)
+
+    if (group.length >= 2)
+      // TODO: we have no solution for abstract overloads so we drop the abstract methods
+      groupedMethods.append(group.filter(m => !isAbstract(m)).toList)
     else
-      overall.append(current.toList)
-  for (
-    method <- methods.tail
-  ) {
-    if (method.name == name)
-      current.append(method)
-    else
-      appendAndFilter()
-      name = method.name
-      current = mutable.Buffer(method)
-  }
-  appendAndFilter()
-  overall.toList
+      groupedMethods.append(group.toList)
+    unprocessed = ungrouped.toList
+
+  groupedMethods.toList
 
 def createMethodOverloads(methods: List[ast.MethodDeclaration]): List[ast.MethodDeclaration] =
   methods.map(removeBody) ::: List(

@@ -91,3 +91,25 @@ export abstract class CoordinateOperation implements GeometryEditorOperation {
     }
 }
 ```
+
+## static methods with same name as non-static methods
+```java
+class A {
+    public static boolean method(String b) {
+        return false;
+    }
+    public boolean method(Integer c) {
+        return true;
+    }
+}
+```
+```typescript
+export class A {
+    public static method(b: string): boolean {
+        return false;
+    }
+    public method(c: number): boolean {
+        return true;
+    }
+}
+```
