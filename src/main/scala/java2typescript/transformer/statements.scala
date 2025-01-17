@@ -49,12 +49,23 @@ def transformStatement(context: ParameterContext, stmt: Statement): ast.Statemen
     case stmt: BreakStmt => ast.BreakStatement()
     case stmt: ContinueStmt => ast.ContinueStatement()
     case stmt: TryStmt => transformTryStatement(context, stmt)
-    case stmt: ExplicitConstructorInvocationStmt => ast.ExpressionStatement(
-      ast.CallExpression(
-        ast.SuperKeyword(),
-        transformArguments(context, stmt.getArguments)
-      )
-    )
+    case stmt: ExplicitConstructorInvocationStmt => 
+      if (stmt.isThis)
+        ast.ReturnStatement(
+          Option(
+            ast.NewExpression(
+              ast.Identifier(context.classOrInterface.get.getNameAsString),
+              transformArguments(context, stmt.getArguments)
+            )
+          )
+        )
+      else
+        ast.ExpressionStatement(
+            ast.CallExpression(
+              ast.SuperKeyword(),
+              transformArguments(context, stmt.getArguments)
+            )
+        )
     case stmt: SwitchStmt => transformSwitchStatement(context, stmt)
     case stmt: ForEachStmt => ast.ForOfStatement(
       transformVariableDeclarationExpression(context, stmt.getVariable),

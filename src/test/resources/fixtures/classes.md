@@ -333,3 +333,57 @@ export class B extends A {
     }
 }
 ```
+
+## call constructor from constructor
+```java
+public class Coordinate {
+    public static final double NULL_ORDINATE = Double.NaN;
+    public double x;
+    public double y;
+    public double z;
+
+    public Coordinate(double x, double y, double z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    public Coordinate(double x, double y) {
+        this(x, y, NULL_ORDINATE);
+    }
+
+    public Coordinate() {
+        this(0.0, 0.0);
+    }
+}
+```
+```typescript
+export class Coordinate {
+    public static NULL_ORDINATE: number = NaN;
+    public x: number;
+    public y: number;
+    public z: number;
+    public constructor(x: number, y: number, z: number);
+    public constructor(x: number, y: number);
+    public constructor();
+    public constructor(...args: any[]) {
+        if (args.length === 3 && typeof args[0] === "number" && typeof args[1] === "number" && typeof args[2] === "number") {
+            let x: number = args[0];
+            let y: number = args[1];
+            let z: number = args[2];
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+        if (args.length === 2 && typeof args[0] === "number" && typeof args[1] === "number") {
+            let x: number = args[0];
+            let y: number = args[1];
+            return new Coordinate(x, y, Coordinate.NULL_ORDINATE);
+        }
+        if (args.length === 0) {
+            return new Coordinate(0.0, 0.0);
+        }
+        throw new Error("overload does not exist");
+    }
+}
+```
