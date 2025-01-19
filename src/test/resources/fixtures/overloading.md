@@ -101,6 +101,9 @@ class A {
     public boolean method(Integer c) {
         return true;
     }
+    public boolean other() {
+        return method("b") && method(5);
+    }
 }
 ```
 ```typescript
@@ -108,8 +111,21 @@ export class A {
     public static method(b: string): boolean {
         return false;
     }
-    public method(c: number): boolean {
-        return true;
+    public method(c: number): boolean;
+    public method(b: string): boolean;
+    public method(...args: any[]): boolean {
+        if (args.length === 1 && typeof args[0] === "number") {
+            let c: number = args[0];
+            return true;
+        }
+        if (args.length === 1 && typeof args[0] === "string") {
+            let b: string = args[0];
+            return A.method(b);
+        }
+        throw new Error("overload does not exist");
+    }
+    public other(): boolean {
+        return this.method("b") && this.method(5);
     }
 }
 ```

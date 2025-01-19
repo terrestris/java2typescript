@@ -748,15 +748,24 @@ export class Coordinate implements Comparable<Coordinate> {
         let dz: number = this.getZ() - c.getZ();
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
-    public hashCode(): number {
-        let result: number = 17;
-        result = 37 * result + this.hashCode(this.x);
-        result = 37 * result + this.hashCode(this.y);
-        return result;
-    }
     public static hashCode(x: number): number {
         let f: number = Number(x);
         return Math.floor((f ^ (f >>>= 32)));
+    }
+    public hashCode(): number;
+    public hashCode(x: number): number;
+    public hashCode(...args: any[]): number {
+        if (args.length === 0) {
+            let result: number = 17;
+            result = 37 * result + this.hashCode(this.x);
+            result = 37 * result + this.hashCode(this.y);
+            return result;
+        }
+        if (args.length === 1 && typeof args[0] === "number") {
+            let x: number = args[0];
+            return Coordinate.hashCode(x);
+        }
+        throw new Error("overload does not exist");
     }
 }
 export class DimensionalComparator implements Comparator<Coordinate> {
@@ -789,17 +798,29 @@ export class DimensionalComparator implements Comparator<Coordinate> {
             return 1;
         return 0;
     }
-    public compare(c1: Coordinate, c2: Coordinate): number {
-        let compX: number = this.compare(c1.x, c2.x);
-        if (compX !== 0)
-            return compX;
-        let compY: number = this.compare(c1.y, c2.y);
-        if (compY !== 0)
-            return compY;
-        if (this.dimensionsToTest <= 2)
-            return 0;
-        let compZ: number = this.compare(c1.getZ(), c2.getZ());
-        return compZ;
+    public compare(c1: Coordinate, c2: Coordinate): number;
+    public compare(a: number, b: number): number;
+    public compare(...args: any[]): number {
+        if (args.length === 2 && args[0] instanceof Coordinate && args[1] instanceof Coordinate) {
+            let c1: Coordinate = args[0];
+            let c2: Coordinate = args[1];
+            let compX: number = this.compare(c1.x, c2.x);
+            if (compX !== 0)
+                return compX;
+            let compY: number = this.compare(c1.y, c2.y);
+            if (compY !== 0)
+                return compY;
+            if (this.dimensionsToTest <= 2)
+                return 0;
+            let compZ: number = this.compare(c1.getZ(), c2.getZ());
+            return compZ;
+        }
+        if (args.length === 2 && typeof args[0] === "number" && typeof args[1] === "number") {
+            let a: number = args[0];
+            let b: number = args[1];
+            return DimensionalComparator.compare(a, b);
+        }
+        throw new Error("overload does not exist");
     }
 }
 ```

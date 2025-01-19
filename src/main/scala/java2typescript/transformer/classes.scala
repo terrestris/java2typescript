@@ -101,17 +101,18 @@ def transformClassOrInterfaceDeclaration(
       else
         constructors
 
-    val methodsWithOverloads = groupMethods(members
-      .collect {
+    val methodsWithOverloads = groupMethods(
+      classContext,
+      members.collect {
         case m: ast.MethodDeclaration => m
-      }.toList)
-      .flatMap {
-        ms =>
-          if (ms.length > 1)
-            createMethodOverloads(ms)
-          else
-            ms
-      }
+      }.toList
+    ).flatMap {
+      ms =>
+        if (ms.length > 1)
+          createMethodOverloads(ms)
+        else
+          ms
+    }
 
     ast.ClassDeclaration(
       transformName(decl.getName),
