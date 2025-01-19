@@ -66,7 +66,7 @@ def isBuiltInType(name: SimpleName): Boolean =
   List("Math", "System").contains(name.asString)
 
 def isDroppableInterface(name: SimpleName): Boolean =
-  List("Cloneable", "Comparable", "Serializable").contains(name.asString)
+  List("Cloneable", "Serializable").contains(name.asString)
 
 def transformAnonymousClass(context: ClassContext, classType: ClassOrInterfaceType, body: List[BodyDeclaration[_]]) =
   if (body.isEmpty) {

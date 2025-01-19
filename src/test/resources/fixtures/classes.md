@@ -298,6 +298,52 @@ export class C {
 }
 ```
 
+## Nested Classes with typed interface using parent class
+```java
+interface I<T> {
+    boolean method(T param);
+}
+```
+```java
+import I;
+
+class A {
+    public class B implements I<A> {
+        public boolean method(A param) {
+            return true;
+        }
+    }
+}
+```
+```java
+import A;
+
+class C {
+    private A.B ab = new A.B();
+}
+```
+```typescript
+export abstract class I<T> {
+    public abstract method(param: T): boolean;
+}
+```
+```typescript
+import { I } from "./I.ts";
+export class A {
+}
+export class B implements I<A> {
+    public method(param: A): boolean {
+        return true;
+    }
+}
+```
+```typescript
+import { B } from "./A.ts";
+export class C {
+    private ab: B = new B();
+}
+```
+
 ## Super Constructor
 ```java
 class A {

@@ -48,15 +48,15 @@ def getModifiers(modifiers: List[Modifier], additionalModifiers: List[ast.Modifi
 }
 
 def transformClassOrInterfaceDeclaration(
-  context: FileContext|ClassContext,
+  context: FileContext,
   decl: ClassOrInterfaceDeclaration,
   additionalModifiers: List[ast.Modifier] = List(),
   dropModifiers: Boolean = false
 ): List[ast.Statement] =
   val className = decl.getName.getIdentifier
   val classContext = context match
+    case c: ClassContext => ClassContext(c, Some(decl), parentClassContext = Option(c))
     case c: FileContext => ClassContext(c, Some(decl))
-    case c: ClassContext => ClassContext(c, Some(decl), Option(c))
 
   val members = decl.getMembers.asScala
     .flatMap(transformMember.curried(classContext))
@@ -67,13 +67,18 @@ def transformClassOrInterfaceDeclaration(
 
   val modifiersVal = getModifiers(decl.getModifiers.asScala.toList, additionalModifiers)
 
+  val typeParameters = decl.getTypeParameters.asScala.map(transformType.curried(classContext)).map {
+    t => t.get
+  }.toList
+
   if (decl.isInterface)
     ast.ClassDeclaration(
       transformName(decl.getName),
+      typeParameters = typeParameters,
       members = members.toList,
       modifiers = modifiersVal ::: List(ast.AbstractKeyword()),
-      heritageClauses = transformHeritage(context, decl.getExtendedTypes.asScala.toList, ast.SyntaxKind.ExtendsKeyword).toList
-        ::: transformHeritage(context, decl.getImplementedTypes.asScala.filter(t => !isDroppableInterface(t.getName)).toList, ast.SyntaxKind.ImplementsKeyword).toList
+      heritageClauses = transformHeritage(classContext, decl.getExtendedTypes.asScala.toList, ast.SyntaxKind.ExtendsKeyword).toList
+        ::: transformHeritage(classContext, decl.getImplementedTypes.asScala.filter(t => !isDroppableInterface(t.getName)).toList, ast.SyntaxKind.ImplementsKeyword).toList
     )
       ::
       extractedStatements
@@ -110,10 +115,11 @@ def transformClassOrInterfaceDeclaration(
 
     ast.ClassDeclaration(
       transformName(decl.getName),
+      typeParameters = typeParameters,
       members = properties ::: constructorsWithOverloads ::: methodsWithOverloads,
       modifiers = modifiersVal,
-      heritageClauses = transformHeritage(context, decl.getExtendedTypes.asScala.toList, ast.SyntaxKind.ExtendsKeyword).toList
-        ::: transformHeritage(context, decl.getImplementedTypes.asScala.filter(t => !isDroppableInterface(t.getName)).toList, ast.SyntaxKind.ImplementsKeyword).toList
+      heritageClauses = transformHeritage(classContext, decl.getExtendedTypes.asScala.toList, ast.SyntaxKind.ExtendsKeyword).toList
+        ::: transformHeritage(classContext, decl.getImplementedTypes.asScala.filter(t => !isDroppableInterface(t.getName)).toList, ast.SyntaxKind.ImplementsKeyword).toList
     )
       ::
       extractedStatements

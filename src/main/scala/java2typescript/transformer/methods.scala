@@ -1,6 +1,7 @@
 package java2typescript.transformer
 
 import com.github.javaparser.ast.body.{ConstructorDeclaration, MethodDeclaration, Parameter}
+import com.github.javaparser.ast.expr.SimpleName
 import java2typescript.ast
 
 import scala.jdk.CollectionConverters.*
@@ -20,7 +21,10 @@ def transformConstructorDeclaration(context: ClassContext, declaration: Construc
     modifiers = methodModifiers
   )
 
-def transformMethodDeclaration(context: ClassContext, decl: MethodDeclaration) =
+def transformMethodDeclaration(context: ClassContext, decl: MethodDeclaration): ast.MethodDeclaration =
+  if (decl.getName.asString == "clone")
+    return createStructuredCloneMethod(context.classOrInterface.get.getName)
+
   val methodParameters = decl.getParameters.asScala.map(transformParameter.curried(context)).toList
   val methodContext = ParameterContext(context, methodParameters.toBuffer)
   val methodBody = decl.getBody.toScala.map(body =>
@@ -45,3 +49,22 @@ def transformMethodDeclaration(context: ClassContext, decl: MethodDeclaration) =
 
 def transformParameter(context: FileContext, param: Parameter) =
   ast.Parameter(transformName(param.getName), transformType(context, param.getType))
+
+def createStructuredCloneMethod(`type`: SimpleName) = ast.MethodDeclaration(
+  ast.Identifier("clone"),
+  Some(ast.TypeReference(ast.Identifier(`type`.asString))),
+  List(),
+  List(),
+  Some(
+    ast.Block(
+      List(
+        ast.ReturnStatement(
+          Some(
+            ast.CallExpression(ast.Identifier("structuredClone"), List(ast.ThisKeyword()))
+          )
+        )
+      )
+    )
+  ),
+  List(ast.PublicKeyword())
+)
