@@ -500,9 +500,38 @@ export class LargestEmptyCircle {
         let lec: LargestEmptyCircle = new LargestEmptyCircle(obstacles, tolerance);
         return lec.getCenter();
     }
+    public getCenter(): Point;
+    public getCenter(obstacles: Geometry, tolerance: number): Point;
+    public getCenter(...args: any[]): Point {
+        if (args.length === 0) {
+            this.compute();
+            return this.centerPoint;
+        }
+        if (args.length === 2 && args[0] instanceof Geometry && typeof args[1] === "number") {
+            let obstacles: Geometry = args[0];
+            let tolerance: number = args[1];
+            return LargestEmptyCircle.getCenter(obstacles, tolerance);
+        }
+        throw new Error("overload does not exist");
+    }
     public static getRadiusLine(obstacles: Geometry, tolerance: number): LineString {
         let lec: LargestEmptyCircle = new LargestEmptyCircle(obstacles, tolerance);
         return lec.getRadiusLine();
+    }
+    public getRadiusLine(): LineString;
+    public getRadiusLine(obstacles: Geometry, tolerance: number): LineString;
+    public getRadiusLine(...args: any[]): LineString {
+        if (args.length === 0) {
+            this.compute();
+            let radiusLine: LineString = this.factory.createLineString([this.centerPt.copy(), this.radiusPt.copy()]);
+            return radiusLine;
+        }
+        if (args.length === 2 && args[0] instanceof Geometry && typeof args[1] === "number") {
+            let obstacles: Geometry = args[0];
+            let tolerance: number = args[1];
+            return LargestEmptyCircle.getRadiusLine(obstacles, tolerance);
+        }
+        throw new Error("overload does not exist");
     }
     private setBoundary(obstacles: Geometry): void {
         this.boundary = obstacles.convexHull();
@@ -511,18 +540,9 @@ export class LargestEmptyCircle {
             this.boundaryDistance = new IndexedFacetDistance(this.boundary);
         }
     }
-    public getCenter(): Point {
-        this.compute();
-        return this.centerPoint;
-    }
     public getRadiusPoint(): Point {
         this.compute();
         return this.radiusPoint;
-    }
-    public getRadiusLine(): LineString {
-        this.compute();
-        let radiusLine: LineString = this.factory.createLineString([this.centerPt.copy(), this.radiusPt.copy()]);
-        return radiusLine;
     }
     private distanceToConstraints(p: Point): number;
     private distanceToConstraints(x: number, y: number): number;

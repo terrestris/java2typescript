@@ -30,5 +30,8 @@ export class Some {
     public static toString(): string {
         throw new Error("This class uses features that are not supported by javascript");
     }
+    public toString(): string {
+        return Some.toString();
+    }
 }
 ```

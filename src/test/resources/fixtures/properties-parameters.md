@@ -19,6 +19,9 @@ export class A {
         let lec: LargestEmptyCircle = new LargestEmptyCircle(obstacles, tolerance);
         return lec.getRadiusLine();
     }
+    public getRadiusLine(obstacles: Geometry, tolerance: number): LineString {
+        return A.getRadiusLine(obstacles, tolerance);
+    }
 }
 ```
 
@@ -46,6 +49,9 @@ export class A extends X {
     }
     public static c(): number {
         return 3;
+    }
+    public c(): number {
+        return A.c();
     }
     public method(d: number): void {
         let e: number = 4;
