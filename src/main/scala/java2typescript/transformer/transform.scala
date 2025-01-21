@@ -109,6 +109,7 @@ def transformType(context: FileContext, aType: Type): Option[ast.Type] =
     case aType: PrimitiveType => Some(transformType(context, aType.toBoxedType).get)
     case aType: WildcardType => None
     case aType: VarType => None
+    case aType: TypeParameter => Some(ast.TypeReference(transformName(aType.getName)))
     case _ => throw new Error("not supported")
 
 def transformTypeArguments(context: FileContext, args: Optional[NodeList[Type]]): List[ast.Type] =
