@@ -4,7 +4,7 @@ import java2typescript.ast
 import java2typescript.ast.SyntaxKind
 import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.body.{BodyDeclaration, ClassOrInterfaceDeclaration, ConstructorDeclaration, MethodDeclaration, TypeDeclaration}
-import java2typescript.transformer.{FileContext, ProjectContext, createConstructorOverloads, createMethodOverloads, groupMethodsByName, isDroppableInterface, transformHeritage, transformModifier, transformName, transformParameter, transformType}
+import java2typescript.transformer.{ClassContext, FileContext, ProjectContext, createConstructorOverloads, createMethodOverloads, groupMethods, isDroppableInterface, transformHeritage, transformModifier, transformName, transformParameter, transformType}
 
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
@@ -91,6 +91,9 @@ def transformClassOrInterfaceDeclaration(
     throw new Error("Interface should always be supported")
 
   val className = decl.getName.getIdentifier
+  val classContext = context match
+    case c: ClassContext => ClassContext(c, Some(decl), parentClassContext = Option(c))
+    case c: FileContext => ClassContext(c, Some(decl))
 
   val members = decl.getMembers.asScala.flatMap(transformMember.curried(context))
 
@@ -117,17 +120,18 @@ def transformClassOrInterfaceDeclaration(
     else
       constructors
 
-  val methodsWithOverloads = groupMethodsByName(members
-    .collect {
+  val methodsWithOverloads = groupMethods(
+    classContext,
+    members.collect {
       case m: ast.MethodDeclaration => m
-    }.toList)
-    .flatMap {
-      ms =>
-        if (ms.length > 1)
-          createMethodOverloads(ms)
-        else
-          ms
-    }
+    }.toList
+  ).flatMap {
+    ms =>
+      if (ms.length > 1)
+        createMethodOverloads(ms)
+      else
+        ms
+  }
 
   ast.ClassDeclaration(
     transformName(decl.getName),

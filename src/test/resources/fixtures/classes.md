@@ -134,6 +134,9 @@ export class A {
         let lec: LargestEmptyCircle = new LargestEmptyCircle(obstacles, tolerance);
         return lec.getCenter();
     }
+    public getCenter(obstacles: Geometry, tolerance: number): Point {
+        return A.getCenter(obstacles, tolerance);
+    }
 }
 ```
 
@@ -178,6 +181,9 @@ export class A {
     static VAR: number = 2;
     static func(): number {
         return 2;
+    }
+    func(): number {
+        return A.func();
     }
     func2(): number {
         return A.VAR + A.func();
@@ -235,6 +241,9 @@ class GeometryOverlay {
 export class GeometryOverlay {
     static OVERLAY_PROPERTY_NAME: string = "test";
     static setOverlayImpl(overlayImplCode: string): void {
+    }
+    setOverlayImpl(overlayImplCode: string): void {
+        return GeometryOverlay.setOverlayImpl(overlayImplCode);
     }
 }
 GeometryOverlay.setOverlayImpl(GeometryOverlay.OVERLAY_PROPERTY_NAME);

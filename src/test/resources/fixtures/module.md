@@ -119,6 +119,9 @@ class A {
 export class D {
     static staticFunc(): void {
     }
+    staticFunc(): void {
+        return D.staticFunc();
+    }
 }
 ```
 ```typescript
