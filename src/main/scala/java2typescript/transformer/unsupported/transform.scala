@@ -10,7 +10,8 @@ import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
 val unsupportedWords = List(
-  "SoftReference"
+  "SoftReference",
+  "synchronized"
 )
 
 def checkUnsupported(code: String) =
