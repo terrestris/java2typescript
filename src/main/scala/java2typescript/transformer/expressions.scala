@@ -98,14 +98,14 @@ def transformMethodCall(context: ParameterContext, expr: MethodCallExpr): ast.Ex
       context.addImportIfNeeded(scope, name)
       val im = context.getImport(scope, name)
       im match {
-        case None => ast.CallExpression(
-            if (scope.get == "Double")
-              transformDoubleField(expr.getName)
-            else
-              ast.PropertyAccessExpression(
-                transformExpression(context, scopeExpr.get),
-                transformName(expr.getName)
-              ),
+        case None => if (scope.get == "Double")
+            transformDoubleCall(expr.getName, arguments)
+        else
+          ast.CallExpression(
+            ast.PropertyAccessExpression(
+              transformExpression(context, scopeExpr.get),
+              transformName(expr.getName)
+            ),
             arguments
           )
         case imVal: Some[Import] => ast.CallExpression(
@@ -169,8 +169,22 @@ def transformAssignExpression(context: ParameterContext, expr: AssignExpr) =
 def transformDoubleField(name: SimpleName) =
   name.asString() match
     case "NaN" => ast.Identifier("NaN")
-    case "isNaN" => ast.PropertyAccessExpression(ast.Identifier("Number"), ast.Identifier("isNaN"))
     case "NEGATIVE_INFINITY" => ast.PropertyAccessExpression(ast.Identifier("Number"), ast.Identifier("NEGATIVE_INFINITY"))
     case "POSITIVE_INFINITY" => ast.PropertyAccessExpression(ast.Identifier("Number"), ast.Identifier("POSITIVE_INFINITY"))
-    case "isFinite" => ast.PropertyAccessExpression(ast.Identifier("Number"), ast.Identifier("isFinite"))
-    case "doubleToLongBits" => ast.Identifier("Number")
+    case "MAX_VALUE" => ast.PropertyAccessExpression(ast.Identifier("Number"), ast.Identifier("MAX_VALUE"))
+
+def transformDoubleCall(name: SimpleName, arguments: List[ast.Expression]) =
+  name.asString() match
+    case "isNaN" => ast.CallExpression(ast.PropertyAccessExpression(ast.Identifier("Number"), ast.Identifier("isNaN")), arguments)
+    case "isFinite" => ast.CallExpression(ast.PropertyAccessExpression(ast.Identifier("Number"), ast.Identifier("isFinite")), arguments)
+    case "isInfinite" => ast.PrefixUnaryExpression(SyntaxKind.ExclamationToken, ast.CallExpression(ast.PropertyAccessExpression(ast.Identifier("Number"), ast.Identifier("isFinite")), arguments))
+    case "doubleToLongBits" => ast.CallExpression(ast.Identifier("Number"), arguments)
+    case "longBitsToDouble" => ast.CallExpression(ast.Identifier("Number"), arguments)
+    case "parseDouble" => ast.CallExpression(ast.Identifier("parseFloat"), arguments)
+    case "compare" =>
+      if (arguments.length != 2)
+        throw new Error("Can't compare more or less then 2 values")
+      else
+        ast.BinaryExpression(arguments(0), arguments(1), ast.EqualsEqualsEqualsToken())
+    case "valueOf" => ast.CallExpression(ast.Identifier("parseFloat"), arguments)
+    case "hashCode" => ast.CallExpression(ast.Identifier("Number"), arguments)

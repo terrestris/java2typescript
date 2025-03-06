@@ -136,7 +136,7 @@ def gatherFiles(config: Config, source: Path): List[Path] =
         val fileName = file.toString
         if (file.isDirectory)
           gatherFiles(config, filePath)
-        else if (config.skipFiles.exists(fr => Regex(fr).matches(fileName)))
+        else if (config.skipFiles.exists(fr => Regex(fr).unanchored.matches(fileName)))
           println(s"SKIPPED: $fileName")
           List()
         else if (fileName.endsWith(".java"))

@@ -38,7 +38,6 @@
     }
   ],
   "skipFiles": [
-    "TestBuilderProxy\\.java",
-    "io\\/.*\\.java"
+    "TestBuilderProxy\\.java"
   ]
 }
